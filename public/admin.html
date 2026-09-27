@@ -50,6 +50,9 @@ select.statusSel{background:#12100d;color:#fff;border:1px solid #3a352b;border-r
 .food-form h3{margin-bottom:12px}
 .food-form input,.food-form textarea{width:100%;padding:10px;margin:5px 0;border:1px solid #3a352b;background:#12100d;color:#fff;border-radius:8px;outline:none}
 .food-form .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.file-label{display:flex;align-items:center;justify-content:center;gap:8px;background:#24211b;border:1px dashed #d6b675;color:#d6b675;border-radius:8px;padding:10px;margin:5px 0;cursor:pointer;font-weight:700;font-size:14px}
+.file-label:hover{background:#2b2721}
+#f_preview{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:6px 0}
 .empty{text-align:center;color:#7c7462;padding:40px}
 @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.food-form .row{grid-template-columns:1fr}}
 </style>
@@ -81,7 +84,7 @@ select.statusSel{background:#12100d;color:#fff;border:1px solid #3a352b;border-r
     </div>
     <div class="toolbar">
       <span id="tabTitle" style="font-weight:700"></span>
-      <button onclick="refresh()">↻ Навсозӣ</button>
+      <span><small id="verTag" style="color:#7c7462;margin-right:8px"></small><button onclick="refresh()">↻ Навсозӣ</button></span>
     </div>
     <div id="content"></div>
   </div>
@@ -138,6 +141,10 @@ async function api(path, opts={}) {
 }
 
 async function refresh() {
+  try {
+    const h = await (await fetch("/api/health")).json();
+    document.getElementById("verTag").textContent = "v" + (h.version || "?");
+  } catch(e) {}
   try {
     const s = await api("/admin/stats");
     stats.innerHTML = `
@@ -209,10 +216,12 @@ async function loadMenu() {
       </div>
       <div class="row">
         <input id="f_price" type="number" placeholder="Нарх *">
-        <input id="f_img" placeholder="URL-и расм">
+        <label class="file-label">📷 Расм интихоб кун<input id="f_file" type="file" accept="image/*" hidden onchange="previewFoodFile(this)"></label>
       </div>
+      <img id="f_preview" hidden alt="Пешнамоиш">
+      <input id="f_img" placeholder="Ё URL-и расм (ихтиёрӣ — агар файл нест)">
       <textarea id="f_desc" placeholder="Тавсиф"></textarea>
-      <button class="btn btn-gold" onclick="addFood()">Илова кардан</button>
+      <button class="btn btn-gold" id="addFoodBtn" onclick="addFood()">Илова кардан</button>
     </div>
     <div class="grid2">${list.map(f => `
       <div class="card">
@@ -239,14 +248,63 @@ async function reservStatus(id, status) {
   try { await api(`/reservations/${id}`, { method:"PATCH", body: JSON.stringify({status}) }); refresh(); }
   catch(e){ alert(e.message); }
 }
+function previewFoodFile(input) {
+  const f = input.files[0];
+  if (!f) { f_preview.hidden = true; return; }
+  f_preview.src = URL.createObjectURL(f);
+  f_preview.hidden = false;
+}
+// Расмҳои калони телефонро хурд мекунад (то 1280px, JPEG) — то зуд бор шавад
+function compressImage(file) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/") || file.size < 700 * 1024) return resolve(file);
+    const img = new Image();
+    img.onload = () => {
+      const max = 1280;
+      let w = img.width, h = img.height;
+      if (w > max || h > max) { const k = max / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      c.toBlob((b) => resolve(b ? new File([b], "photo.jpg", { type: "image/jpeg" }) : file), "image/jpeg", 0.82);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function uploadPhoto(file) {
+  const small = await compressImage(file);
+  const fd = new FormData();
+  fd.append("photo", small);
+  const r = await fetch("/api/upload", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: fd });
+  const x = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(x.error || "Расм бор нашуд.");
+  return x.url;
+}
 async function addFood() {
+  if (!f_name.value.trim() || !f_price.value) { alert("Ном ва нарх ҳатмӣ!"); return; }
+  const btn = document.getElementById("addFoodBtn");
+  btn.disabled = true;
+  const oldT = btn.textContent;
+  btn.textContent = "Бор шуда истодааст...";
   try {
+    let img = f_img.value.trim();
+    if (f_file.files[0]) img = await uploadPhoto(f_file.files[0]);
     await api("/foods", { method:"POST", body: JSON.stringify({
-      name: f_name.value, category: f_cat.value, price: Number(f_price.value),
-      image: f_img.value, description: f_desc.value
+      name: f_name.value.trim(), category: f_cat.value.trim() || "Асосӣ",
+      price: Number(f_price.value), image: img, description: f_desc.value.trim()
     })});
     refresh();
-  } catch(e){ alert(e.message); }
+  } catch(e){ alert("Хатогӣ: " + e.message); }
+  finally { btn.disabled = false; btn.textContent = oldT; }
+}
+async function changeFoodPhoto(id, input) {
+  if (!input.files[0]) return;
+  try {
+    const url = await uploadPhoto(input.files[0]);
+    await api(`/foods/${id}`, { method: "PUT", body: JSON.stringify({ image: url }) });
+    refresh();
+  } catch(e){ alert("Хатогӣ: " + e.message); }
 }
 async function delFood(id) {
   if (!confirm("Ин таом нест карда шавад?")) return;

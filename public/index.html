@@ -144,14 +144,18 @@
     <div class="pay-amount"><span id="payAmount">0 с.</span></div>
     <div class="pay-qr-wrap"><img id="payQR" alt="QR барои пардохт"><small>Бо Алиф ё Душанбе Сити app скан кунед</small></div>
     <div class="pay-cards">
-      <div class="pay-card-row"><div><small>Душанбе Сити</small><b id="payDC">—</b></div><button type="button" class="copy-btn" data-copy="payDC">Нусха</button></div>
-      <div class="pay-card-row"><div><small>Алиф</small><b id="payAlif">—</b></div><button type="button" class="copy-btn" data-copy="payAlif">Нусха</button></div>
+      <div class="pay-card-row"><div><small>Душанбе Сити · ҳамён</small><b id="payDC">—</b></div><button type="button" class="copy-btn" data-copy="payDC">Нусха</button></div>
+      <div class="pay-card-row"><div><small>Алиф · ҳамён</small><b id="payAlif">—</b></div><button type="button" class="copy-btn" data-copy="payAlif">Нусха</button></div>
       <div class="pay-card-row code-row"><div><small>Код дар комментария 👇</small><b id="payCode">—</b></div><button type="button" class="copy-btn" data-copy="payCode">Нусха</button></div>
     </div>
+    <div class="pay-bank-btns">
+      <button type="button" class="bank-btn alif" id="payAlifBtn">🟢 Пардохт бо Алиф</button>
+      <button type="button" class="bank-btn dc" id="payDCBtn">🔵 Душанбе Сити</button>
+    </div>
     <ol class="pay-steps">
-      <li>Ба яке аз кортҳо пул фиристед</li>
-      <li>Кодро дар комментария нависед</li>
-      <li>Тугмаи «Пардохт кардам»-ро пахш кунед</li>
+      <li>Тугмаи бонатонро пахш кунед (ҳамён ва сумма нусха мешавад)</li>
+      <li>Дар app пул фиристед, кодро дар комментария нависед</li>
+      <li>«Пардохт кардам ✓»-ро пахш кунед</li>
     </ol>
     <button class="btn btn-primary full" id="payDoneBtn">Пардохт кардам ✓</button>
     <button class="btn btn-ghost full" id="payCancelBtn" style="margin-top:8px">Баъдтар</button>

@@ -155,3 +155,61 @@ if (realReservation) realReservation.addEventListener("submit", async (e) => {
   }
   realReservation.reset();
 }, true);
+
+/* ===== PAY SHEET (равзанаи пардохт мисли Google Pay) ===== */
+let _payOrderId = null;
+let _payInfo = {};
+function copyText(txt) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt);
+  return Promise.reject(new Error("clipboard"));
+}
+function payWithBank(which) {
+  const isAlif = which === "alif";
+  const wallet = isAlif ? _payInfo.alifWallet : _payInfo.dcWallet;
+  const link = isAlif ? _payInfo.alifLink : _payInfo.dcLink;
+  const name = isAlif ? "Алиф" : "Душанбе Сити";
+  const txt = "Хамён: " + wallet + "\nСумма: " + _payInfo.amount + " с.\nКод: " + _payInfo.code;
+  copyText(txt).then(() => {
+    if (link) { toast("Нусха шуд! " + name + " кушода мешавад..."); setTimeout(() => window.open(link, "_blank"), 500); }
+    else toast("Нусха шуд ✓ " + name + " app → хамён " + wallet + " → " + _payInfo.amount + " с.");
+  }).catch(() => { prompt("Дар " + name + " app пардохт кунед:", txt); if (link) window.open(link, "_blank"); });
+}
+function showPaymentSheet(order) {
+  const p = order.paymentInstructions || {};
+  _payOrderId = order.orderId;
+  _payInfo = { amount: order.total, code: p.comment, dcWallet: p.dcWallet, alifWallet: p.alifWallet, dcLink: p.dcLink, alifLink: p.alifLink };
+  document.getElementById("payOrderId").textContent = "#" + order.orderId;
+  document.getElementById("payAmount").textContent = order.total + " с.";
+  document.getElementById("payDC").textContent = p.dushanbeCity || "—";
+  document.getElementById("payAlif").textContent = p.alif || "—";
+  document.getElementById("payCode").textContent = p.comment || "—";
+  document.getElementById("payAlifBtn").onclick = () => payWithBank("alif");
+  document.getElementById("payDCBtn").onclick = () => payWithBank("dc");
+  const qr = document.getElementById("payQR");
+  if (p.qr) { qr.src = p.qr; qr.parentElement.style.display = "block"; }
+  else { qr.parentElement.style.display = "none"; }
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("paySheet").classList.add("show");
+  document.body.classList.add("lock");
+}
+document.getElementById("payDoneBtn").addEventListener("click", async () => {
+  if (!_payOrderId) return;
+  try {
+    await apiRequest("/orders/" + _payOrderId + "/payment-submitted", { method: "POST" });
+    localStorage.removeItem("oshonaPendingOrder");
+    document.getElementById("paySheet").classList.remove("show");
+    closeAll();
+    toast("Пардохт барои санҷиши админ фиристода шуд ✓");
+  } catch (err) { toast("Хатогӣ: " + err.message); }
+});
+document.getElementById("payCancelBtn").addEventListener("click", () => {
+  document.getElementById("paySheet").classList.remove("show");
+  closeAll();
+  toast("Фармоиш сабт шуд. Баъдтар пардохт карда метавонед.");
+});
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  const txt = document.getElementById(b.dataset.copy).textContent;
+  copyText(txt).then(() => toast("Нусхабардорӣ шуд ✓")).catch(() => { prompt("Нусхабардорӣ кунед:", txt); });
+});

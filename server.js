@@ -21,6 +21,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "oshona_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const CURRENCY = process.env.CURRENCY || "TJS";
+const APP_VERSION = "1.3.0";
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -119,7 +120,7 @@ app.post("/api/auth/login", async (req, res) => {
 
 // ---------- Health ----------
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, foods: foods.length, orders: orders.length, reservations: reservations.length });
+  res.json({ ok: true, version: APP_VERSION, foods: foods.length, orders: orders.length, reservations: reservations.length });
 });
 
 // ---------- Upload расм (барои меню) ----------
@@ -136,7 +137,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+  limits: { fileSize: 15 * 1024 * 1024 }, // max 15MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("Танҳо файли расм (JPG/PNG) иҷозат аст."));
@@ -145,7 +146,11 @@ const upload = multer({
 
 app.post("/api/upload", authRequired, (req, res) => {
   upload.single("photo")(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message || "Хатогӣ дар боркунии расм." });
+    if (err) {
+      let msg = err.message || "Хатогӣ дар боркунии расм.";
+      if (err.code === "LIMIT_FILE_SIZE") msg = "Расм хеле калон аст (ҳадди аксар 15MB).";
+      return res.status(400).json({ error: msg });
+    }
     if (!req.file) return res.status(400).json({ error: "Расм интихоб нашудааст." });
     res.status(201).json({ url: "/uploads/" + req.file.filename });
   });
@@ -242,13 +247,20 @@ app.post("/api/orders", async (req, res) => {
   orders.unshift(order);
   writeJSON("orders.json", orders);
 
-  // QR-код барои пардохт бо Алиф / Душанбе Сити app (скан кун → пардохт кун)
-  const dcCard = process.env.DUSHANBE_CITY_CARD || "";
-  const alifCard = process.env.ALIF_CARD || "";
+  // Ҳамёнҳо ва линкҳои пардохт (Алиф / Душанбе Сити)
+  // Агар DC_PAY_URL / ALIF_PAY_URL (формати merchant) дода шавад — тугмаҳо app-ро мекушоянд
+  const dcWallet = process.env.DUSHANBE_CITY_WALLET || process.env.DUSHANBE_CITY_CARD || "034392828";
+  const alifWallet = process.env.ALIF_WALLET || process.env.ALIF_CARD || "034392828";
+  const fillLink = (tpl, wallet) => tpl
+    ? tpl.split("{wallet}").join(wallet).split("{amount}").join(String(order.total)).split("{code}").join(order.paymentCode)
+    : null;
+  const dcLink = fillLink(process.env.DC_PAY_URL || "", dcWallet);
+  const alifLink = fillLink(process.env.ALIF_PAY_URL || "", alifWallet);
+
   let qr = null;
   try {
     qr = await QRCode.toDataURL(
-      `OSHONA | Сумма: ${order.total} ${CURRENCY} | Код: ${order.paymentCode} | DC: ${dcCard} | Alif: ${alifCard}`,
+      `OSHONA | Сумма: ${order.total} ${CURRENCY} | Хамён: ${dcWallet} | Код: ${order.paymentCode}`,
       { width: 240, margin: 2 }
     );
   } catch (e) { console.warn("QR хатогӣ:", e.message); }
@@ -258,8 +270,9 @@ app.post("/api/orders", async (req, res) => {
     total: order.total,
     currency: order.currency,
     paymentInstructions: {
-      dushanbeCity: `${dcCard} (${process.env.DUSHANBE_CITY_NAME || "OSHONA"})`,
-      alif: `${alifCard} (${process.env.ALIF_NAME || "OSHONA"})`,
+      dushanbeCity: `${dcWallet} (${process.env.DUSHANBE_CITY_NAME || "OSHONA"})`,
+      alif: `${alifWallet} (${process.env.ALIF_NAME || "OSHONA"})`,
+      dcWallet, alifWallet, dcLink, alifLink,
       comment: order.paymentCode,
       amount: order.total,
       qr,
