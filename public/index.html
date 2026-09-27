@@ -138,6 +138,25 @@
     <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><button class="btn btn-primary full">Тасдиқ кардани фармоиш</button></form>
   </div>
 
+  <div class="modal small-modal pay-sheet" id="paySheet">
+    <p class="eyebrow">ПАРДОХТ · Мисли Google Pay</p>
+    <h2>Фармоиш <em id="payOrderId">#0</em></h2>
+    <div class="pay-amount"><span id="payAmount">0 с.</span></div>
+    <div class="pay-qr-wrap"><img id="payQR" alt="QR барои пардохт"><small>Бо Алиф ё Душанбе Сити app скан кунед</small></div>
+    <div class="pay-cards">
+      <div class="pay-card-row"><div><small>Душанбе Сити</small><b id="payDC">—</b></div><button type="button" class="copy-btn" data-copy="payDC">Нусха</button></div>
+      <div class="pay-card-row"><div><small>Алиф</small><b id="payAlif">—</b></div><button type="button" class="copy-btn" data-copy="payAlif">Нусха</button></div>
+      <div class="pay-card-row code-row"><div><small>Код дар комментария 👇</small><b id="payCode">—</b></div><button type="button" class="copy-btn" data-copy="payCode">Нусха</button></div>
+    </div>
+    <ol class="pay-steps">
+      <li>Ба яке аз кортҳо пул фиристед</li>
+      <li>Кодро дар комментария нависед</li>
+      <li>Тугмаи «Пардохт кардам»-ро пахш кунед</li>
+    </ol>
+    <button class="btn btn-primary full" id="payDoneBtn">Пардохт кардам ✓</button>
+    <button class="btn btn-ghost full" id="payCancelBtn" style="margin-top:8px">Баъдтар</button>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="script.js"></script>
 </body>

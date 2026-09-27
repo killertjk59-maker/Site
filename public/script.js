@@ -126,15 +126,10 @@ if (realCheckout) realCheckout.addEventListener("submit", async (e) => {
 
     if (paymentMethod === "online") {
       localStorage.setItem("oshonaPendingOrder", JSON.stringify(order));
-      const p = order.paymentInstructions;
-      alert(
-        `Фармоиш #${order.orderId}\nСумма: ${order.total} ${order.currency}\n\n`+
-        `Душанбе Сити: ${p.dushanbeCity}\nАлиф: ${p.alif}\n\n`+
-        `Коди комментария: ${p.comment}\n\n`+
-        `Пардохтро анҷом диҳед ва OK-ро пахш кунед.`
-      );
-      await apiRequest(`/orders/${order.orderId}/payment-submitted`, {method:"POST"});
-      toast("Пардохт барои санҷиши админ фиристода шуд ✓");
+      cart=[]; saveCart(); realCheckout.reset();
+      document.getElementById("checkoutModal").classList.remove("show");
+      showPaymentSheet(order);
+      return;
     } else {
       toast("Фармоиши нақдӣ қабул шуд ✓");
     }

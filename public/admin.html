@@ -216,9 +216,12 @@ async function loadMenu() {
     </div>
     <div class="grid2">${list.map(f => `
       <div class="card">
+        ${f.image ? `<img src="${esc(f.image)}" style="width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:10px" onerror="this.style.display='none'" alt="">` : ""}
         <div class="card-head"><b>${esc(f.name)}</b><span style="color:#d6b675;font-weight:800">${f.price} с.</span></div>
         <div class="meta">${esc(f.category||"")} · ${esc((f.description||"").slice(0,80))}</div>
         <div class="actions">
+          <button class="btn btn-ghost" onclick="document.getElementById('cf${f.id}').click()">🖼 Ивази расм</button>
+          <input type="file" id="cf${f.id}" accept="image/*" hidden onchange="changeFoodPhoto(${f.id},this)">
           <button class="btn btn-ghost" onclick="delFood(${f.id})">🗑 Нест кардан</button>
         </div>
       </div>`).join("")}</div>`;

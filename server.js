@@ -13,6 +13,8 @@ const fs = require("fs");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
+const QRCode = require("qrcode");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -120,6 +122,36 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, foods: foods.length, orders: orders.length, reservations: reservations.length });
 });
 
+// ---------- Upload расм (барои меню) ----------
+// Дар DATA_DIR/uploads нигоҳ дошта мешавад → дар Railway Volume (/app/data) онро мепӯшонад
+const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase() || ".jpg";
+    cb(null, Date.now() + "-" + Math.random().toString(36).slice(2, 8) + ext);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Танҳо файли расм (JPG/PNG) иҷозат аст."));
+  },
+});
+
+app.post("/api/upload", authRequired, (req, res) => {
+  upload.single("photo")(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || "Хатогӣ дар боркунии расм." });
+    if (!req.file) return res.status(400).json({ error: "Расм интихоб нашудааст." });
+    res.status(201).json({ url: "/uploads/" + req.file.filename });
+  });
+});
+app.use("/uploads", express.static(UPLOAD_DIR));
+
 // ---------- Foods / Меню ----------
 app.get("/api/foods", (req, res) => res.json(foods));
 
@@ -168,7 +200,7 @@ app.delete("/api/foods/:id", authRequired, (req, res) => {
 });
 
 // ---------- Orders / Фармоишҳо ----------
-app.post("/api/orders", (req, res) => {
+app.post("/api/orders", async (req, res) => {
   const { customerName, name, phone, address, method, paymentMethod, paymentProvider, items } = req.body || {};
 
   const clientName = customerName || name;
@@ -210,15 +242,27 @@ app.post("/api/orders", (req, res) => {
   orders.unshift(order);
   writeJSON("orders.json", orders);
 
+  // QR-код барои пардохт бо Алиф / Душанбе Сити app (скан кун → пардохт кун)
+  const dcCard = process.env.DUSHANBE_CITY_CARD || "";
+  const alifCard = process.env.ALIF_CARD || "";
+  let qr = null;
+  try {
+    qr = await QRCode.toDataURL(
+      `OSHONA | Сумма: ${order.total} ${CURRENCY} | Код: ${order.paymentCode} | DC: ${dcCard} | Alif: ${alifCard}`,
+      { width: 240, margin: 2 }
+    );
+  } catch (e) { console.warn("QR хатогӣ:", e.message); }
+
   res.status(201).json({
     ...orderDTO(order),
     total: order.total,
     currency: order.currency,
     paymentInstructions: {
-      dushanbeCity: `${process.env.DUSHANBE_CITY_CARD || ""} (${process.env.DUSHANBE_CITY_NAME || "OSHONA"})`,
-      alif: `${process.env.ALIF_CARD || ""} (${process.env.ALIF_NAME || "OSHONA"})`,
+      dushanbeCity: `${dcCard} (${process.env.DUSHANBE_CITY_NAME || "OSHONA"})`,
+      alif: `${alifCard} (${process.env.ALIF_NAME || "OSHONA"})`,
       comment: order.paymentCode,
       amount: order.total,
+      qr,
     },
   });
 });
