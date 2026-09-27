@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OSHONA — Панели админ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#14120f;color:#f0e9da;min-height:100vh}
+a{color:#d6b675}
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:#0e0d0b;border-bottom:1px solid #2b2822}
+.logo{font-weight:800;letter-spacing:3px}.logo span{color:#d6b675;font-family:Georgia,serif;font-size:26px}
+.topbar button{background:#d6b675;border:0;padding:9px 16px;border-radius:8px;font-weight:700;cursor:pointer}
+.wrap{max-width:1100px;margin:auto;padding:22px}
+.login-card{max-width:420px;margin:8vh auto;background:#1d1a15;border:1px solid #2e2a23;border-radius:16px;padding:34px;text-align:center}
+.login-card h1{font-size:26px;margin-bottom:8px}
+.login-card p{color:#9a917f;font-size:13px;margin-bottom:20px}
+.login-card input{width:100%;padding:13px;margin:6px 0;border:1px solid #3a352b;background:#12100d;color:#fff;border-radius:10px;outline:none}
+.login-card input:focus{border-color:#d6b675}
+.login-card button{width:100%;margin-top:12px;background:#d6b675;border:0;padding:13px;border-radius:10px;font-weight:800;cursor:pointer;font-size:15px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:#1d1a15;border:1px solid #2e2a23;border-radius:14px;padding:16px}
+.stat b{display:block;font-size:26px;color:#d6b675}
+.stat span{font-size:11px;color:#9a917f;text-transform:uppercase;letter-spacing:1px}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tabs button{border:1px solid #3a352b;background:transparent;color:#cfc6b4;padding:10px 18px;border-radius:30px;cursor:pointer;font-weight:600}
+.tabs button.active{background:#d6b675;color:#14120f;border-color:#d6b675}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.toolbar button{background:#24211b;border:1px solid #3a352b;color:#fff;padding:9px 16px;border-radius:8px;cursor:pointer}
+.card{background:#1d1a15;border:1px solid #2e2a23;border-radius:14px;padding:18px;margin-bottom:12px}
+.card.review{border-color:#d6b675;box-shadow:0 0 0 1px #d6b67555}
+.card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.card-head b{font-size:18px}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.st-NEW{background:#2e6b4f}.st-AWAITING_PAYMENT{background:#6b5a2e}.st-PAYMENT_REVIEW{background:#8a6a1f}
+.st-CONFIRMED{background:#2e5a6b}.st-COOKING{background:#6b3a2e}.st-DELIVERING{background:#4a3a6b}
+.st-DONE{background:#3f7a3f}.st-CANCELLED,.st-PAYMENT_REJECTED{background:#7a3f3f}
+.meta{font-size:13px;color:#b9ae97;line-height:1.7}
+.meta code{background:#12100d;padding:2px 8px;border-radius:6px;color:#d6b675;font-weight:700}
+.items{margin:10px 0;font-size:13px}
+.items li{margin-left:18px;color:#cfc6b4}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:0;padding:9px 15px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px}
+.btn-ok{background:#3f7a3f;color:#fff}.btn-no{background:#7a3f3f;color:#fff}
+.btn-ghost{background:#24211b;border:1px solid #3a352b;color:#fff}
+.btn-gold{background:#d6b675;color:#14120f}
+select.statusSel{background:#12100d;color:#fff;border:1px solid #3a352b;border-radius:8px;padding:9px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.food-form{background:#1d1a15;border:1px solid #2e2a23;border-radius:14px;padding:18px;margin-bottom:14px}
+.food-form h3{margin-bottom:12px}
+.food-form input,.food-form textarea{width:100%;padding:10px;margin:5px 0;border:1px solid #3a352b;background:#12100d;color:#fff;border-radius:8px;outline:none}
+.food-form .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.empty{text-align:center;color:#7c7462;padding:40px}
+@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.food-form .row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><span>O</span>SHONA · ADMIN</div>
+  <div><a href="/" style="margin-right:12px;font-size:13px">← Сайт</a><button id="logoutBtn" hidden>Баромадан</button></div>
+</div>
+
+<div class="wrap">
+  <!-- LOGIN -->
+  <div class="login-card" id="loginCard">
+    <h1>Воридшавӣ</h1>
+    <p>Танҳо барои кормандони OSHONA</p>
+    <input id="u" placeholder="Логин" value="admin" autocomplete="username">
+    <input id="p" type="password" placeholder="Парол" autocomplete="current-password">
+    <button onclick="login()">Ворид шудан →</button>
+    <p id="loginErr" style="color:#e08a8a;margin-top:10px"></p>
+  </div>
+
+  <!-- APP -->
+  <div id="app" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <button class="active" data-tab="orders" onclick="switchTab('orders')">🧾 Фармоишҳо</button>
+      <button data-tab="reserv" onclick="switchTab('reserv')">📅 Бронкунии миз</button>
+      <button data-tab="menu" onclick="switchTab('menu')">🍽️ Меню</button>
+    </div>
+    <div class="toolbar">
+      <span id="tabTitle" style="font-weight:700"></span>
+      <button onclick="refresh()">↻ Навсозӣ</button>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem("oshonaAdminToken") || "";
+let tab = "orders";
+
+const headers = () => ({ "Authorization": "Bearer " + token, "Content-Type": "application/json" });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const statusLabel = {
+  NEW:"Нав", AWAITING_PAYMENT:"Интизори пардохт", PAYMENT_REVIEW:"Санҷиши пардохт",
+  CONFIRMED:"Тасдиқ шуд", COOKING:"Дар ошхона", DELIVERING:"Дар роҳ", DONE:"Анҷом",
+  CANCELLED:"Бекор", PAYMENT_REJECTED:"Пардохт рад шуд"
+};
+const payLabel = { cash:"💵 Нақдӣ", online:"📱 Онлайн", PAID:"Пардохт шуд ✓", IN_REVIEW:"Дар санҷиш", AWAITING_PAYMENT:"Интизор", REJECTED:"Рад", CASH_ON_DELIVERY:"Нақд ҳангоми қабул" };
+
+async function login() {
+  loginErr.textContent = "";
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ username: u.value, password: p.value })
+    });
+    const x = await r.json();
+    if (!r.ok) { loginErr.textContent = x.error || "Хатогӣ"; return; }
+    token = x.token;
+    localStorage.setItem("oshonaAdminToken", token);
+    showApp();
+  } catch(e) { loginErr.textContent = "Сервер дастнорас аст."; }
+}
+
+function logout() { token=""; localStorage.removeItem("oshonaAdminToken"); location.reload(); }
+logoutBtn.onclick = logout;
+
+function showApp() {
+  loginCard.hidden = true; app.hidden = false; logoutBtn.hidden = false;
+  refresh();
+}
+
+function switchTab(t) {
+  tab = t;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+  refresh();
+}
+
+async function api(path, opts={}) {
+  const r = await fetch("/api" + path, { ...opts, headers: headers() });
+  if (r.status === 401) { logout(); throw new Error("Сессия гузашт"); }
+  const x = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(x.error || "Хатогӣ");
+  return x;
+}
+
+async function refresh() {
+  try {
+    const s = await api("/admin/stats");
+    stats.innerHTML = `
+      <div class="stat"><b>${s.orders}</b><span>Фармоишҳо</span></div>
+      <div class="stat"><b>${s.newOrders}</b><span>Интизор</span></div>
+      <div class="stat"><b>${s.reservations}</b><span>Бронҳо</span></div>
+      <div class="stat"><b>${s.revenue} ${esc(s.currency)}</b><span>Даромад</span></div>`;
+  } catch(e) {}
+  if (tab === "orders") loadOrders();
+  if (tab === "reserv") loadReserv();
+  if (tab === "menu") loadMenu();
+}
+
+async function loadOrders() {
+  tabTitle.textContent = "Фармоишҳо";
+  let list = [];
+  try { list = await api("/orders"); } catch(e) { content.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  if (!list.length) { content.innerHTML = `<div class="empty">Ҳоло фармоиш нест.</div>`; return; }
+  content.innerHTML = list.map(o => `
+    <div class="card ${o.status==="PAYMENT_REVIEW"?"review":""}">
+      <div class="card-head">
+        <b>#${o.id} · ${esc(o.customerName||o.customer_name)}</b>
+        <span class="badge st-${o.status}">${esc(statusLabel[o.status]||o.status)}</span>
+      </div>
+      <div class="meta">
+        📞 ${esc(o.phone)} · 📍 ${esc(o.address||"—")}<br>
+        Пардохт: ${esc(payLabel[o.paymentMethod]||o.paymentMethod)} / ${esc(payLabel[o.paymentStatus||o.payment_status]||o.paymentStatus||"—")}
+        ${o.paymentCode||o.payment_code ? ` · Код: <code>${esc(o.paymentCode||o.payment_code)}</code>` : ""}<br>
+        💰 <b style="color:#d6b675">${o.total} ${esc(o.currency||"TJS")}</b> · 🕐 ${new Date(o.createdAt).toLocaleString("tg-TJ")}
+      </div>
+      <ul class="items">${(o.items||[]).map(i=>`<li>${esc(i.name)} × ${i.quantity} — ${i.price*i.quantity} с.</li>`).join("")}</ul>
+      <div class="actions">
+        ${o.status==="PAYMENT_REVIEW" ? `
+          <button class="btn btn-ok" onclick="act(${o.id},'approve-payment')">✅ Пардохт тасдиқ</button>
+          <button class="btn btn-no" onclick="act(${o.id},'reject-payment')">❌ Рад кардан</button>`:""}
+        <select class="statusSel" onchange="setStatus(${o.id},this.value)">
+          ${Object.keys(statusLabel).map(k=>`<option value="${k}" ${k===o.status?"selected":""}>${statusLabel[k]}</option>`).join("")}
+        </select>
+      </div>
+    </div>`).join("");
+}
+
+async function loadReserv() {
+  tabTitle.textContent = "Бронкунии мизҳо";
+  let list = [];
+  try { list = await api("/reservations"); } catch(e) { content.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  if (!list.length) { content.innerHTML = `<div class="empty">Ҳоло брон нест.</div>`; return; }
+  content.innerHTML = list.map(r => `
+    <div class="card">
+      <div class="card-head"><b>#${r.id} · ${esc(r.name)}</b><span class="badge st-${r.status==="NEW"?"PAYMENT_REVIEW":"DONE"}">${esc(r.status==="NEW"?"Нав":r.status)}</span></div>
+      <div class="meta">📞 ${esc(r.phone)} · 📅 ${esc(r.date)} · 🕐 ${esc(r.time)} · 👥 ${esc(r.guests)}</div>
+      <div class="actions">
+        <button class="btn btn-ok" onclick="reservStatus(${r.id},'CONFIRMED')">✅ Тасдиқ</button>
+        <button class="btn btn-no" onclick="reservStatus(${r.id},'CANCELLED')">❌ Бекор</button>
+      </div>
+    </div>`).join("");
+}
+
+async function loadMenu() {
+  tabTitle.textContent = "Меню (таомҳо)";
+  let list = [];
+  try { list = await api("/foods"); } catch(e) { list = await (await fetch("/api/foods")).json(); }
+  content.innerHTML = `
+    <div class="food-form">
+      <h3>➕ Таоми нав</h3>
+      <div class="row">
+        <input id="f_name" placeholder="Ном *">
+        <input id="f_cat" placeholder="Категория (Асосӣ, Pizza...)">
+      </div>
+      <div class="row">
+        <input id="f_price" type="number" placeholder="Нарх *">
+        <input id="f_img" placeholder="URL-и расм">
+      </div>
+      <textarea id="f_desc" placeholder="Тавсиф"></textarea>
+      <button class="btn btn-gold" onclick="addFood()">Илова кардан</button>
+    </div>
+    <div class="grid2">${list.map(f => `
+      <div class="card">
+        <div class="card-head"><b>${esc(f.name)}</b><span style="color:#d6b675;font-weight:800">${f.price} с.</span></div>
+        <div class="meta">${esc(f.category||"")} · ${esc((f.description||"").slice(0,80))}</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="delFood(${f.id})">🗑 Нест кардан</button>
+        </div>
+      </div>`).join("")}</div>`;
+}
+
+async function act(id, action) {
+  try { await api(`/orders/${id}/${action}`, { method:"POST" }); refresh(); }
+  catch(e){ alert(e.message); }
+}
+async function setStatus(id, status) {
+  try { await api(`/orders/${id}/status`, { method:"PATCH", body: JSON.stringify({status}) }); refresh(); }
+  catch(e){ alert(e.message); }
+}
+async function reservStatus(id, status) {
+  try { await api(`/reservations/${id}`, { method:"PATCH", body: JSON.stringify({status}) }); refresh(); }
+  catch(e){ alert(e.message); }
+}
+async function addFood() {
+  try {
+    await api("/foods", { method:"POST", body: JSON.stringify({
+      name: f_name.value, category: f_cat.value, price: Number(f_price.value),
+      image: f_img.value, description: f_desc.value
+    })});
+    refresh();
+  } catch(e){ alert(e.message); }
+}
+async function delFood(id) {
+  if (!confirm("Ин таом нест карда шавад?")) return;
+  try { await api(`/foods/${id}`, { method:"DELETE" }); refresh(); }
+  catch(e){ alert(e.message); }
+}
+
+// Авто-воридшавӣ агар токен ҳаст
+if (token) showApp();
+p.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+setInterval(() => { if (!app.hidden) refresh(); }, 30000);
+</script>
+</body>
+</html>

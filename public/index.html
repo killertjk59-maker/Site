@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#11100e">
+  <meta name="description" content="OSHONA — restaurant ordering and reservation website">
+  <title>OSHONA — Restaurant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="loader" id="loader"><div class="loader-mark">O</div><p>OSHONA</p></div>
+
+  <header class="header" id="header">
+    <a class="logo" href="#home" aria-label="OSHONA home"><span>O</span>SHONA</a>
+    <nav class="nav" id="nav">
+      <a href="#home">Асосӣ</a>
+      <a href="#menu">Меню</a>
+      <a href="#about">Дар бораи мо</a>
+      <a href="#gallery">Галерея</a>
+      <a href="#contact">Тамос</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="searchBtn" aria-label="Search">⌕</button>
+      <button class="cart-btn" id="cartBtn">Сабад <b id="cartCount">0</b></button>
+      <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-bg"></div>
+      <div class="hero-content reveal">
+        <p class="eyebrow">ТАЪМИ ХОТИРАНАШУДАНӢ</p>
+        <h1>Ҳар луқма<br><em>як ҳикоя.</em></h1>
+        <p class="hero-copy">Таомҳои тоза, маҳсулоти босифат ва фазое, ки мехоҳед боз баргардед.</p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" href="#menu">Менюро дидан <span>↗</span></a>
+          <button class="btn btn-ghost" id="heroReserve">Миз фармоиш додан</button>
+        </div>
+        <div class="hero-meta">
+          <span>★ 4.9 / 5</span><i></i><span>Ҳар рӯз 09:00 — 23:00</span>
+        </div>
+      </div>
+      <div class="hero-scroll">SCROLL <span>↓</span></div>
+    </section>
+
+    <section class="section intro reveal">
+      <div>
+        <p class="eyebrow">OSHONA — 2018</p>
+        <h2>Мо ғизоро танҳо<br><em>тайёр намекунем.</em></h2>
+      </div>
+      <p class="intro-text">Мо маҳсулоти маҳаллӣ, дастурҳои дӯстдошта ва техникаи муосирро якҷо мекунем. Натиҷа — таоме, ки содда менамояд, вале таъмаш дар хотир мемонад.</p>
+    </section>
+
+    <section class="section menu-section" id="menu">
+      <div class="section-head reveal">
+        <div>
+          <p class="eyebrow">МЕНЮ</p>
+          <h2>Интихоби <em>имрӯза</em></h2>
+        </div>
+        <button class="text-btn" id="allMenuBtn">Ҳамаи меню →</button>
+      </div>
+      <div class="filters reveal" id="filters"></div>
+      <div class="food-grid" id="foodGrid"></div>
+    </section>
+
+    <section class="feature-banner reveal">
+      <div class="feature-copy">
+        <p class="eyebrow">ТАВСИЯИ CHEF</p>
+        <h2>Oshona<br><em>Signature</em></h2>
+        <p>Гӯшти мулоим, сабзавоти мавсимӣ ва соуси махсуси Chef.</p>
+        <button class="btn btn-light" data-add="8">Илова ба сабад — 79 с.</button>
+      </div>
+    </section>
+
+    <section class="section about-grid" id="about">
+      <div class="about-image reveal"></div>
+      <div class="about-copy reveal">
+        <p class="eyebrow">ФАЛСАФАИ МО</p>
+        <h2>Аз ошхона то<br><em>дастархони шумо.</em></h2>
+        <p>Дар OSHONA ҳар як компонент интихоб мешавад: аз нонҳои ҳаррӯза то гиёҳҳои тару тоза. Мо ба сифати хӯрок, суръати хизматрасонӣ ва ҷузъиёти хурд аҳамият медиҳем.</p>
+        <div class="stats">
+          <div><strong>8+</strong><span>сол таҷриба</span></div>
+          <div><strong>40+</strong><span>таоми меню</span></div>
+          <div><strong>4.9</strong><span>рейтинги меҳмонон</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section gallery-section" id="gallery">
+      <div class="section-head reveal">
+        <div><p class="eyebrow">ГАЛЕРЕЯ</p><h2>Фазои <em>OSHONA</em></h2></div>
+      </div>
+      <div class="gallery">
+        <div class="g g1 reveal"></div><div class="g g2 reveal"></div><div class="g g3 reveal"></div><div class="g g4 reveal"></div>
+      </div>
+    </section>
+
+    <section class="reservation reveal" id="reservation">
+      <div>
+        <p class="eyebrow">МЕҲМОНИ МО ШАВЕД</p>
+        <h2>Мизи худро<br><em>пешакӣ банд кунед.</em></h2>
+      </div>
+      <form id="reservationForm">
+        <label>Ном<input name="name" required placeholder="Номи шумо"></label>
+        <label>Телефон<input name="phone" required type="tel" placeholder="+992 ..."></label>
+        <label>Сана<input name="date" required type="date"></label>
+        <label>Вақт<select name="time" required><option value="">Интихоб кунед</option><option>12:00</option><option>14:00</option><option>18:00</option><option>20:00</option><option>22:00</option></select></label>
+        <label>Меҳмонон<select name="guests"><option>2 нафар</option><option>3 нафар</option><option>4 нафар</option><option>5 нафар</option><option>6+ нафар</option></select></label>
+        <button class="btn btn-primary" type="submit">Банд кардан →</button>
+      </form>
+    </section>
+
+    <section class="section contact" id="contact">
+      <div class="contact-card reveal"><p class="eyebrow">ТАМОС</p><h2>Биёед<br><em>вохӯрем.</em></h2><p>Душанбе, кӯчаи Рӯдакӣ 45<br>Ҳар рӯз: 09:00 — 23:00</p><a href="tel:+992900000000">+992 90 000 00 00</a></div>
+      <div class="map-card reveal"><div class="map-pin">⌖</div><span>Душанбе</span></div>
+    </section>
+  </main>
+
+  <footer><div class="logo"><span>O</span>SHONA</div><p>© 2026 OSHONA. Ҳамаи ҳуқуқҳо ҳифз шудаанд.</p><div><a href="#">Instagram</a><a href="#">Telegram</a></div></footer>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="cartDrawer">
+    <div class="drawer-head"><h3>Сабади шумо</h3><button class="close" data-close>×</button></div>
+    <div id="cartItems"></div>
+    <div class="cart-empty" id="cartEmpty">Сабад ҳоло холӣ аст.</div>
+    <div class="cart-total"><span>Ҳамагӣ</span><strong id="cartTotal">0 с.</strong></div>
+    <button class="btn btn-primary full" id="checkoutBtn">Офаридани фармоиш →</button>
+  </aside>
+
+  <div class="modal" id="foodModal"><button class="close" data-close>×</button><div id="foodModalContent"></div></div>
+  <div class="modal small-modal" id="checkoutModal"><button class="close" data-close>×</button>
+    <p class="eyebrow">CHECKOUT</p><h2>Фармоишро<br><em>тасдиқ кунед.</em></h2>
+    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><button class="btn btn-primary full">Тасдиқ кардани фармоиш</button></form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="script.js"></script>
+</body>
+</html>
