@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "oshona_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const CURRENCY = process.env.CURRENCY || "TJS";
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.3.1";
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -152,10 +152,18 @@ app.post("/api/upload", authRequired, (req, res) => {
       return res.status(400).json({ error: msg });
     }
     if (!req.file) return res.status(400).json({ error: "Расм интихоб нашудааст." });
+    console.log(`📷 Upload: ${req.file.filename} (${Math.round(req.file.size/1024)}KB)`);
     res.status(201).json({ url: "/uploads/" + req.file.filename });
   });
 });
 app.use("/uploads", express.static(UPLOAD_DIR));
+
+// Санҷиши хотира (админ) — дидани расмҳои боршуда дар сервер
+app.get("/api/debug/storage", authRequired, (req, res) => {
+  let files = [];
+  try { files = fs.readdirSync(UPLOAD_DIR).filter((f) => !f.startsWith(".")); } catch {}
+  res.json({ dataDir: DATA_DIR, uploads: files.length, files: files.slice(0, 50), version: APP_VERSION });
+});
 
 // ---------- Foods / Меню ----------
 app.get("/api/foods", (req, res) => res.json(foods));
