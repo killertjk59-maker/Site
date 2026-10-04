@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#11100e">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OSHONA">
+  <link rel="apple-touch-icon" href="/icons/apple-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <meta name="description" content="OSHONA — restaurant ordering and reservation website">
   <title>OSHONA — Restaurant</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,6 +166,13 @@
     </ol>
     <button class="btn btn-primary full" id="payDoneBtn">Пардохт кардам ✓</button>
     <button class="btn btn-ghost full" id="payCancelBtn" style="margin-top:8px">Баъдтар</button>
+  </div>
+
+  <div class="install-banner" id="installBanner" hidden>
+    <img src="/icons/icon-192.png" alt="OSHONA">
+    <div><b>OSHONA барнома</b><small>Дар телефон насб кунед 📲</small></div>
+    <button id="installBtn">Насб</button>
+    <button id="installClose" aria-label="Пӯшидан">×</button>
   </div>
 
   <div class="toast" id="toast"></div>

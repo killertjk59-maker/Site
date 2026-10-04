@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "oshona_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const CURRENCY = process.env.CURRENCY || "TJS";
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.4.0";
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -157,6 +157,7 @@ app.post("/api/upload", authRequired, (req, res) => {
   });
 });
 app.use("/uploads", express.static(UPLOAD_DIR));
+app.get("/sw.js", (req, res) => res.sendFile(require("path").join(__dirname, "public", "sw.js"), { headers: { "Cache-Control": "no-cache" } }));
 
 // Санҷиши хотира (админ) — дидани расмҳои боршуда дар сервер
 app.get("/api/debug/storage", authRequired, (req, res) => {

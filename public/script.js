@@ -213,3 +213,27 @@ document.addEventListener("click", (e) => {
   const txt = document.getElementById(b.dataset.copy).textContent;
   copyText(txt).then(() => toast("Нусхабардорӣ шуд ✓")).catch(() => { prompt("Нусхабардорӣ кунед:", txt); });
 });
+
+/* ===== OSHONA PWA — насб ҳамчун барнома ===== */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((e) => console.warn("SW:", e.message));
+  });
+}
+let _deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  if (!localStorage.getItem("oshonaInstallHide")) document.getElementById("installBanner").hidden = false;
+});
+document.getElementById("installBtn").addEventListener("click", async () => {
+  if (!_deferredPrompt) { toast("Дар Chrome: меню ⋮ → «Насб кардани барнома»"); return; }
+  _deferredPrompt.prompt();
+  await _deferredPrompt.userChoice;
+  _deferredPrompt = null;
+  document.getElementById("installBanner").hidden = true;
+});
+document.getElementById("installClose").addEventListener("click", () => {
+  document.getElementById("installBanner").hidden = true;
+  localStorage.setItem("oshonaInstallHide", "1");
+});
