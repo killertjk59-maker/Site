@@ -50,7 +50,7 @@ function addToCart(id){
 }
 function saveCart(){localStorage.setItem("oshonaCart",JSON.stringify(cart)); renderCart();}
 function renderCart(){
- const count=cart.reduce((s,x)=>s+x.qty,0); $("#cartCount").textContent=count;
+ const count=cart.reduce((s,x)=>s+x.qty,0); $("#cartCount").textContent=count;const _tc=document.getElementById("tabCartCount");if(_tc)_tc.textContent=count;
  const items=$("#cartItems"); $("#cartEmpty").style.display=cart.length?"none":"block";
  items.innerHTML=cart.map(x=>{const f=foods.find(a=>a.id===x.id);return `<div class="cart-row"><img src="${f.img}"><div><h4>${f.name}</h4><small>${f.price} с.</small><div class="qty"><button data-minus="${f.id}">−</button><span>${x.qty}</span><button data-plus="${f.id}">+</button></div></div><strong>${f.price*x.qty} с.</strong></div>`}).join("");
  $("#cartTotal").textContent=cart.reduce((s,x)=>s+foods.find(f=>f.id===x.id).price*x.qty,0)+" с.";
@@ -64,14 +64,19 @@ document.addEventListener("click",e=>{
 
 function openCart(){closeModals();$("#overlay").classList.add("show");$("#cartDrawer").classList.add("open");document.body.classList.add("lock")}
 function openFood(id){const f=foods.find(x=>x.id===id);$("#foodModalContent").innerHTML=`<div class="modal-food"><img src="${f.img}"><div><p class="eyebrow">${f.cat}</p><h2>${f.name}</h2><p>${f.desc}</p><strong class="price">${f.price} с.</strong><button class="btn btn-primary full" style="margin-top:25px" data-add="${f.id}">Ба сабад илова кардан</button></div></div>`;$("#overlay").classList.add("show");$("#foodModal").classList.add("show");document.body.classList.add("lock")}
-function openCheckout(){if(!cart.length){toast("Аввал ба сабад хӯрок илова кунед.");return}$("#cartDrawer").classList.remove("open");$("#checkoutModal").classList.add("show")}
+function openCheckout(){
+  if(!cart.length){toast("Аввал ба сабад хӯрок илова кунед.");return}
+  _promo=null;document.getElementById("promoInput").value="";document.getElementById("promoInfo").hidden=true;
+  updateCheckoutTotal();
+  $("#cartDrawer").classList.remove("open");$("#checkoutModal").classList.add("show")
+}
 function closeAll(){closeModals();$("#overlay").classList.remove("show");document.body.classList.remove("lock")}
 function closeModals(){$$("#foodModal,.small-modal").forEach(x=>x.classList.remove("show"));$("#cartDrawer").classList.remove("open")}
 $("#overlay").addEventListener("click",closeAll);
 
 $("#checkoutForm").addEventListener("submit",e=>{e.preventDefault();const order={...Object.fromEntries(new FormData(e.target)),items:cart,date:new Date().toISOString()};localStorage.setItem("lastOshonaOrder",JSON.stringify(order));cart=[];saveCart();closeAll();toast("Фармоиши шумо қабул шуд! ✓");e.target.reset()});
 $("#reservationForm").addEventListener("submit",e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));localStorage.setItem("oshonaReservation",JSON.stringify(d));e.target.reset();toast("Миз барои шумо банд карда шуд! ✓")});
-$("#searchBtn").addEventListener("click",()=>{const q=prompt("Чиро ҷустуҷӯ мекунед?");if(!q)return;const f=foods.find(x=>x.name.toLowerCase().includes(q.toLowerCase()));if(f){openFood(f.id)}else toast("Ҳеҷ чиз ёфт нашуд.")});
+$("#searchBtn").addEventListener("click",()=>openSearch());
 $("#menuToggle").addEventListener("click",()=>$("#nav").classList.toggle("open"));
 $("#allMenuBtn").addEventListener("click",()=>{renderFoods();document.querySelector("#menu").scrollIntoView({behavior:"smooth"})});
 
@@ -120,20 +125,21 @@ if (realCheckout) realCheckout.addEventListener("submit", async (e) => {
         method:"delivery",
         paymentMethod,
         paymentProvider: paymentMethod === "online" ? "manual" : null,
-        items:cart.map(x=>({foodId:x.id,quantity:x.qty}))
+        items:cart.map(x=>({foodId:x.id,quantity:x.qty})),
+        promo: _promo ? _promo.promo : null
       })
     });
 
     if (paymentMethod === "online") {
       localStorage.setItem("oshonaPendingOrder", JSON.stringify(order));
-      cart=[]; saveCart(); realCheckout.reset();
+      _promo=null;cart=[]; saveCart(); realCheckout.reset();
       document.getElementById("checkoutModal").classList.remove("show");
       showPaymentSheet(order);
       return;
     } else {
       toast("Фармоиши нақдӣ қабул шуд ✓");
     }
-    cart=[]; saveCart(); closeAll(); realCheckout.reset();
+    _promo=null;cart=[]; saveCart(); closeAll(); realCheckout.reset();
   } catch (err) {
     toast("Хатогӣ: " + err.message);
   }
@@ -236,4 +242,80 @@ document.getElementById("installBtn").addEventListener("click", async () => {
 document.getElementById("installClose").addEventListener("click", () => {
   document.getElementById("installBanner").hidden = true;
   localStorage.setItem("oshonaInstallHide", "1");
+});
+
+/* ===== OSHONA APP — таббар, ҷустуҷӯ, промо, фармоишҳои ман ===== */
+let _promo = null;
+function cartSubtotal(){return cart.reduce((s,x)=>{const f=foods.find(a=>a.id===x.id);return s+(f?f.price*x.qty:0)},0)}
+function updateCheckoutTotal(){
+  const sub=cartSubtotal(),d=_promo?_promo.discount:0;
+  document.getElementById("checkoutTotal").innerHTML="Ҷамъ: "+sub+" с."+(d?' <span class="disc">−'+d+' с. 🎟 '+_promo.promo+"</span>":"")+"<br><b>Ҳамагӣ: "+(sub-d)+" с.</b>";
+}
+function switchMainTab(name){
+  document.querySelectorAll("#tabbar button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
+  closeAll();
+  if(name==="home")window.scrollTo({top:0,behavior:"smooth"});
+  if(name==="menu")document.querySelector("#menu").scrollIntoView({behavior:"smooth"});
+  if(name==="search")openSearch();
+  if(name==="cart")openCart();
+  if(name==="orders")openMyOrders();
+}
+document.querySelectorAll("#tabbar button").forEach(b=>b.addEventListener("click",()=>switchMainTab(b.dataset.tab)));
+function openSearch(){
+  document.getElementById("searchScreen").classList.add("show");
+  document.body.classList.add("lock");
+  const inp=document.getElementById("searchInput");inp.value="";renderSearch();
+  setTimeout(()=>inp.focus(),100);
+}
+function closeSearch(){document.getElementById("searchScreen").classList.remove("show");if(!document.querySelector(".modal.show"))document.body.classList.remove("lock")}
+function renderSearch(){
+  const q=(document.getElementById("searchInput").value||"").toLowerCase().trim();
+  const list=q?foods.filter(f=>((f.name||"")+" "+(f.desc||"")+" "+(f.cat||"")).toLowerCase().includes(q)):foods;
+  document.getElementById("searchResults").innerHTML=list.length?list.map(f=>
+    '<div class="sr-row"><img src="'+f.img+'" onerror="this.style.display=\'none\'"><div><h4>'+f.name+'</h4><small>'+f.cat+' · '+f.price+' с.</small></div><button data-add="'+f.id+'">+</button></div>'
+  ).join(""):'<div class="empty">Ҳеҷ чиз ёфт нашуд.</div>';
+}
+document.getElementById("searchInput").addEventListener("input",renderSearch);
+document.getElementById("searchClose").addEventListener("click",closeSearch);
+function statusText(s){return {NEW:"Нав ✓",AWAITING_PAYMENT:"Интизори пардохт",PAYMENT_REVIEW:"Дар санҷиш",CONFIRMED:"Тасдиқ шуд",COOKING:"Дар ошхона",DELIVERING:"Дар роҳ",DONE:"Анҷом ✓",CANCELLED:"Бекор",PAYMENT_REJECTED:"Пардохт рад шуд"}[s]||s}
+function openMyOrders(){
+  closeAll();
+  document.getElementById("moPhone").value=localStorage.getItem("oshonaPhone")||"";
+  document.getElementById("moList").innerHTML="";
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("myOrdersModal").classList.add("show");
+  document.body.classList.add("lock");
+}
+async function loadMyOrders(){
+  const phone=document.getElementById("moPhone").value.trim();
+  if(phone.length<6){toast("Рақами телефонро нависед.");return}
+  localStorage.setItem("oshonaPhone",phone);
+  const box=document.getElementById("moList");box.innerHTML="<div class='empty'>Ҷустуҷӯ...</div>";
+  try{
+    const list=await apiRequest("/orders/by-phone?phone="+encodeURIComponent(phone));
+    if(!list.length){box.innerHTML="<div class='empty'>Фармоиш ёфт нашуд.</div>";return}
+    box.innerHTML=list.map(o=>
+      '<div class="mo-card"><div class="mo-head"><b>#'+o.id+'</b><span class="mo-status">'+statusText(o.status)+'</span></div>'+
+      "<small>"+(o.items||[]).map(i=>i.name+" × "+i.quantity).join(", ")+"</small>"+
+      '<div class="mo-foot"><b>'+o.total+' с.</b>'+(o.status==="AWAITING_PAYMENT"?'<button onclick="payOldOrder('+o.id+')">Пардохт кардан</button>':"")+"</div></div>"
+    ).join("");
+  }catch(e){box.innerHTML="<div class='empty'>"+e.message+"</div>"}
+}
+async function payOldOrder(id){
+  try{
+    const info=await apiRequest("/orders/"+id+"/pay-info");
+    document.getElementById("myOrdersModal").classList.remove("show");
+    showPaymentSheet({orderId:info.orderId,total:info.total,currency:info.currency,paymentInstructions:info.paymentInstructions});
+  }catch(e){toast("Хатогӣ: "+e.message)}
+}
+document.getElementById("myOrdersBtn").addEventListener("click",loadMyOrders);
+document.getElementById("promoApply").addEventListener("click",async()=>{
+  const code=document.getElementById("promoInput").value.trim();
+  const info=document.getElementById("promoInfo");
+  if(!code){_promo=null;info.hidden=true;updateCheckoutTotal();return}
+  try{
+    const r=await apiRequest("/promos/validate",{method:"POST",body:JSON.stringify({code,total:cartSubtotal()})});
+    _promo=r;info.hidden=false;info.textContent="🎟 "+r.promo+": −"+r.discount+" с.";
+    updateCheckoutTotal();toast("Промокод татбиқ шуд ✓");
+  }catch(e){_promo=null;info.hidden=true;updateCheckoutTotal();toast("Хатогӣ: "+e.message)}
 });

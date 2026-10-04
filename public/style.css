@@ -31,3 +31,37 @@
 .install-banner b{font-size:15px}.install-banner small{color:#b9ae97;font-size:12px}
 .install-banner #installBtn{background:#d6b675;border:0;color:#171512;font-weight:800;border-radius:10px;padding:10px 18px;cursor:pointer}
 .install-banner #installClose{background:none;border:0;color:#888;font-size:22px;cursor:pointer;padding:4px 8px}
+
+/* ===== APP: таббар + ҷустуҷӯ + фармоишҳо + промо ===== */
+body{padding-bottom:90px}
+.tabbar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:1400;display:flex;gap:4px;background:rgba(23,21,18,.96);backdrop-filter:blur(12px);border:1px solid #d6b67544;border-radius:22px;padding:8px 10px;box-shadow:0 14px 40px #000a;width:max-content;max-width:94vw}
+.tabbar button{position:relative;border:0;background:none;color:#b9ae97;font-size:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;border-radius:14px;min-width:62px}
+.tabbar button span{font-size:10px;font-weight:700}
+.tabbar button.active{background:#d6b675;color:#171512}
+.tab-badge{position:absolute;top:2px;right:8px;background:#c0392b;color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+.search-screen{position:fixed;inset:0;z-index:3000;background:#f5f1e9;display:none;flex-direction:column}
+.search-screen.show{display:flex}
+.search-head{display:flex;gap:8px;padding:16px;background:#171512}
+.search-head input{flex:1;padding:13px 16px;border-radius:12px;border:1px solid #494641;background:#24231f;color:#fff;outline:none;font-size:16px}
+.search-head button{border:0;background:#d6b675;color:#171512;font-size:24px;width:52px;border-radius:12px;cursor:pointer}
+.search-results{flex:1;overflow:auto;padding:14px;display:grid;gap:10px;align-content:start}
+.sr-row{display:flex;gap:12px;align-items:center;background:#eee9df;border-radius:14px;padding:10px}
+.sr-row img{width:64px;height:64px;object-fit:cover;border-radius:10px}
+.sr-row div{flex:1}.sr-row h4{font:600 17px "Playfair Display",serif}.sr-row small{color:#777}
+.sr-row button{border:0;background:#171512;color:#fff;width:44px;height:44px;border-radius:50%;font-size:24px;cursor:pointer}
+.mo-card{background:#24231f;border:1px solid #3a352b;border-radius:12px;padding:14px;margin-bottom:10px}
+.mo-head{display:flex;justify-content:space-between;margin-bottom:6px}
+.mo-status{font-size:11px;color:#d6b675;font-weight:700}
+.mo-card small{color:#b9ae97}
+.mo-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.mo-foot button{border:0;background:#d6b675;color:#171512;font-weight:800;border-radius:8px;padding:8px 14px;cursor:pointer}
+.mo-search{display:flex;gap:8px;margin:16px 0}
+.mo-search input{flex:1;padding:12px;border:1px solid #494641;background:#24231f;color:#fff;border-radius:10px;outline:none}
+.mo-search button{border:0;background:#d6b675;color:#171512;font-weight:800;border-radius:10px;padding:0 18px;cursor:pointer}
+.promo-row{display:flex;gap:8px}
+.promo-row button{border:1px solid #d6b675;background:transparent;color:#d6b675;font-weight:800;border-radius:8px;padding:0 18px;cursor:pointer;white-space:nowrap}
+.promo-info{font-size:13px;color:#7bc47b;font-weight:700}
+.checkout-total{background:#24231f;border:1px solid #3a352b;border-radius:10px;padding:12px;font-size:14px}
+.checkout-total .disc{color:#7bc47b;font-weight:700}
+.checkout-total b{font-size:18px;color:#d6b675}
+@media(max-width:560px){.tabbar button{padding:8px 10px;min-width:56px}}

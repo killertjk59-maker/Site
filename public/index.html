@@ -142,7 +142,7 @@
   <div class="modal" id="foodModal"><button class="close" data-close>×</button><div id="foodModalContent"></div></div>
   <div class="modal small-modal" id="checkoutModal"><button class="close" data-close>×</button>
     <p class="eyebrow">CHECKOUT</p><h2>Фармоишро<br><em>тасдиқ кунед.</em></h2>
-    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><button class="btn btn-primary full">Тасдиқ кардани фармоиш</button></form>
+    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><div class="promo-row"><input name="promo" id="promoInput" placeholder="🎟 Промокод (ихтиёрӣ)" autocomplete="off"><button type="button" id="promoApply">OK</button></div><div class="promo-info" id="promoInfo" hidden></div><div class="checkout-total" id="checkoutTotal"></div><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><button class="btn btn-primary full">Тасдиқ кардани фармоиш</button></form>
   </div>
 
   <div class="modal small-modal pay-sheet" id="paySheet">
@@ -173,6 +173,25 @@
     <div><b>OSHONA барнома</b><small>Дар телефон насб кунед 📲</small></div>
     <button id="installBtn">Насб</button>
     <button id="installClose" aria-label="Пӯшидан">×</button>
+  </div>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-tab="home" class="active">🏠<span>Асосӣ</span></button>
+    <button data-tab="menu">🍽<span>Меню</span></button>
+    <button data-tab="search">🔍<span>Ҷустуҷӯ</span></button>
+    <button data-tab="orders">📦<span>Фармоиш</span></button>
+    <button data-tab="cart">🧺<span>Сабад</span><b class="tab-badge" id="tabCartCount">0</b></button>
+  </nav>
+
+  <div class="search-screen" id="searchScreen">
+    <div class="search-head"><input id="searchInput" placeholder="Номи таомро нависед... 🔍" autocomplete="off"><button id="searchClose" aria-label="Пӯшидан">×</button></div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="modal small-modal" id="myOrdersModal"><button class="close" data-close>×</button>
+    <p class="eyebrow">ФАРМОИШҲОИ МАН</p><h2>Таърихи<br><em>фармоишҳо.</em></h2>
+    <div class="mo-search"><input id="moPhone" type="tel" placeholder="+992 ..."><button id="myOrdersBtn" type="button">Ҷустуҷӯ</button></div>
+    <div id="moList"></div>
   </div>
 
   <div class="toast" id="toast"></div>

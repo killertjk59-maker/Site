@@ -48,7 +48,7 @@ select.statusSel{background:#12100d;color:#fff;border:1px solid #3a352b;border-r
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .food-form{background:#1d1a15;border:1px solid #2e2a23;border-radius:14px;padding:18px;margin-bottom:14px}
 .food-form h3{margin-bottom:12px}
-.food-form input,.food-form textarea{width:100%;padding:10px;margin:5px 0;border:1px solid #3a352b;background:#12100d;color:#fff;border-radius:8px;outline:none}
+.food-form input,.food-form textarea,.food-form select{width:100%;padding:10px;margin:5px 0;border:1px solid #3a352b;background:#12100d;color:#fff;border-radius:8px;outline:none}
 .food-form .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .file-label{display:flex;align-items:center;justify-content:center;gap:8px;background:#24211b;border:1px dashed #d6b675;color:#d6b675;border-radius:8px;padding:10px;margin:5px 0;cursor:pointer;font-weight:700;font-size:14px}
 .file-label:hover{background:#2b2721}
@@ -81,6 +81,7 @@ select.statusSel{background:#12100d;color:#fff;border:1px solid #3a352b;border-r
       <button class="active" data-tab="orders" onclick="switchTab('orders')">🧾 Фармоишҳо</button>
       <button data-tab="reserv" onclick="switchTab('reserv')">📅 Бронкунии миз</button>
       <button data-tab="menu" onclick="switchTab('menu')">🍽️ Меню</button>
+      <button data-tab="promo" onclick="switchTab('promo')">🎟 Промо</button>
     </div>
     <div class="toolbar">
       <span id="tabTitle" style="font-weight:700"></span>
@@ -156,6 +157,7 @@ async function refresh() {
   if (tab === "orders") loadOrders();
   if (tab === "reserv") loadReserv();
   if (tab === "menu") loadMenu();
+  if (tab === "promo") loadPromos();
 }
 
 async function loadOrders() {
@@ -330,6 +332,53 @@ async function delFood(id) {
   if (!confirm("Ин таом нест карда шавад?")) return;
   try { await api(`/foods/${id}`, { method:"DELETE" }); refresh(); }
   catch(e){ alert(e.message); }
+}
+
+async function loadPromos() {
+  tabTitle.textContent = "Промокодҳо";
+  let list = [];
+  try { list = await api("/promos"); } catch(e) { content.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  content.innerHTML = `
+    <div class="food-form">
+      <h3>➕ Промокоди нав</h3>
+      <div class="row">
+        <input id="pr_code" placeholder="Код (масалан NAVRUZ20)" autocapitalize="characters">
+        <select id="pr_type"><option value="percent">% Фоиз</option><option value="amount">с. Сумма</option></select>
+      </div>
+      <div class="row">
+        <input id="pr_value" type="number" placeholder="Миқдор (10 = 10% ё 10 с.)">
+        <input id="pr_min" type="number" placeholder="Ҳадди ақал сумма (0)">
+      </div>
+      <button class="btn btn-gold" onclick="addPromo()">Илова кардан</button>
+    </div>
+    <div class="grid2">${list.map(p => `
+      <div class="card">
+        <div class="card-head"><b>🎟 ${esc(p.code)}</b><span class="badge ${p.active === false ? "st-CANCELLED" : "st-DONE"}">${p.active === false ? "Хомӯш" : "Фаъол"}</span></div>
+        <div class="meta">${p.type === "percent" ? p.value + "% тахфиф" : p.value + " с. тахфиф"}${p.minTotal ? " · аз " + p.minTotal + " с." : ""}</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="togglePromo('${esc(p.code)}')">${p.active === false ? "▶️ Фаъол" : "⏸ Хомӯш"}</button>
+          <button class="btn btn-ghost" onclick="delPromo('${esc(p.code)}')">🗑 Нест</button>
+        </div>
+      </div>`).join("")}</div>`;
+}
+async function addPromo() {
+  if (!pr_code.value.trim() || !pr_value.value) { alert("Код ва миқдор ҳатмӣ!"); return; }
+  try {
+    await api("/promos", { method: "POST", body: JSON.stringify({
+      code: pr_code.value, type: pr_type.value,
+      value: Number(pr_value.value), minTotal: Number(pr_min.value) || 0
+    })});
+    refresh();
+  } catch(e){ alert("Хатогӣ: " + e.message); }
+}
+async function delPromo(code) {
+  if (!confirm("Промокод " + code + " нест шавад?")) return;
+  try { await api("/promos/" + encodeURIComponent(code), { method: "DELETE" }); refresh(); }
+  catch(e){ alert("Хатогӣ: " + e.message); }
+}
+async function togglePromo(code) {
+  try { await api("/promos/" + encodeURIComponent(code) + "/toggle", { method: "POST" }); refresh(); }
+  catch(e){ alert("Хатогӣ: " + e.message); }
 }
 
 // Авто-воридшавӣ агар токен ҳаст

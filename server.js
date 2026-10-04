@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "oshona_secret_change_me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const CURRENCY = process.env.CURRENCY || "TJS";
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.5.0";
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -35,17 +35,19 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // Seed: агар foods холӣ/нест бошад — аз seed пур кун (барои деплойи аввал дар Railway)
 function ensureSeeded() {
-  try {
-    const foodsPath = path.join(DATA_DIR, "foods.json");
-    const seedPath = path.join(SEED_DIR, "foods.json");
-    const needsSeed =
-      !fs.existsSync(foodsPath) || (JSON.parse(fs.readFileSync(foodsPath, "utf8") || "[]").length === 0);
-    if (needsSeed && fs.existsSync(seedPath)) {
-      fs.copyFileSync(seedPath, foodsPath);
-      console.log("🌱 Меню аз seed/foods.json пур карда шуд.");
+  for (const f of ["foods.json", "promos.json"]) {
+    try {
+      const dataPath = path.join(DATA_DIR, f);
+      const seedPath = path.join(SEED_DIR, f);
+      const needsSeed =
+        !fs.existsSync(dataPath) || (JSON.parse(fs.readFileSync(dataPath, "utf8") || "[]").length === 0);
+      if (needsSeed && fs.existsSync(seedPath)) {
+        fs.copyFileSync(seedPath, dataPath);
+        console.log(`🌱 ${f} аз seed пур карда шуд.`);
+      }
+    } catch (e) {
+      console.warn("Seed хатогӣ:", e.message);
     }
-  } catch (e) {
-    console.warn("Seed хатогӣ:", e.message);
   }
 }
 ensureSeeded();
@@ -69,6 +71,20 @@ function writeJSON(file, data) {
 let foods = readJSON("foods.json", []);
 let orders = readJSON("orders.json", []);
 let reservations = readJSON("reservations.json", []);
+let promos = readJSON("promos.json", []);
+
+// Промокодро санҷида, тахфифро ҳисоб мекунад
+function applyPromo(code, subtotal) {
+  if (!code) return { promo: null, discount: 0, total: subtotal };
+  const clean = String(code).trim().toUpperCase();
+  const p = promos.find((x) => x.code === clean && x.active !== false);
+  if (!p) return { error: "Промокод нодуруст ё ғайрифаъол." };
+  if (p.minTotal && subtotal < p.minTotal)
+    return { error: `Барои ин промокод ҳадди ақал ${p.minTotal} с. лозим.` };
+  let discount = p.type === "amount" ? p.value : Math.round((subtotal * p.value) / 100);
+  discount = Math.min(discount, subtotal);
+  return { promo: p.code, discount, total: subtotal - discount };
+}
 
 // Пароли админ (ҳеш бо bcrypt)
 let adminPasswordHash;
@@ -236,6 +252,11 @@ app.post("/api/orders", async (req, res) => {
     detailedItems.push({ foodId: food.id, name: food.name, price: food.price, quantity: qty });
   }
 
+  const subtotal = total;
+  const pr = applyPromo((req.body || {}).promo, subtotal);
+  if (pr.error) return res.status(400).json({ error: pr.error });
+  total = pr.total;
+
   const payMethod = paymentMethod === "cash" ? "cash" : "online";
   const order = {
     id: nextId(orders),
@@ -249,6 +270,9 @@ app.post("/api/orders", async (req, res) => {
     paymentStatus: payMethod === "cash" ? "CASH_ON_DELIVERY" : "AWAITING_PAYMENT",
     status: payMethod === "cash" ? "NEW" : "AWAITING_PAYMENT",
     items: detailedItems,
+    subtotal,
+    discount: pr.discount,
+    promo: pr.promo,
     total,
     currency: CURRENCY,
     createdAt: new Date().toISOString(),
@@ -284,6 +308,8 @@ app.post("/api/orders", async (req, res) => {
       dcWallet, alifWallet, dcLink, alifLink,
       comment: order.paymentCode,
       amount: order.total,
+      promo: order.promo,
+      discount: order.discount || 0,
       qr,
     },
   });
@@ -292,6 +318,47 @@ app.post("/api/orders", async (req, res) => {
 // Рӯйхати фармоишҳо — админ
 app.get("/api/orders", authRequired, (req, res) => {
   res.json(orders.map(orderDTO));
+});
+
+// Фармоишҳои муштарӣ аз рӯи телефон (бе логин)
+app.get("/api/orders/by-phone", (req, res) => {
+  const q = String(req.query.phone || "").replace(/\D/g, "");
+  if (q.length < 6) return res.status(400).json({ error: "Рақами телефонро дуруст нависед." });
+  const tail = q.slice(-9);
+  const list = orders.filter((o) => {
+    const p = String(o.phone || "").replace(/\D/g, "");
+    return p && (p.endsWith(tail) || q.endsWith(p.slice(-9)));
+  });
+  res.json(list.map(orderDTO));
+});
+
+// Маълумоти пардохт барои фармоиши кӯҳна (пардохти дубора)
+app.get("/api/orders/:id/pay-info", async (req, res) => {
+  const o = orders.find((x) => x.id === Number(req.params.id));
+  if (!o) return res.status(404).json({ error: "Фармоиш ёфт нашуд." });
+  const dcWallet = process.env.DUSHANBE_CITY_WALLET || process.env.DUSHANBE_CITY_CARD || "034392828";
+  const alifWallet = process.env.ALIF_WALLET || process.env.ALIF_CARD || "034392828";
+  const fillLink = (tpl, wallet) => tpl
+    ? tpl.split("{wallet}").join(wallet).split("{amount}").join(String(o.total)).split("{code}").join(o.paymentCode)
+    : null;
+  let qr = null;
+  try {
+    qr = await QRCode.toDataURL(
+      `OSHONA | Сумма: ${o.total} ${CURRENCY} | Хамён: ${dcWallet} | Код: ${o.paymentCode}`,
+      { width: 240, margin: 2 }
+    );
+  } catch {}
+  res.json({
+    orderId: o.id, total: o.total, currency: o.currency,
+    paymentInstructions: {
+      dushanbeCity: `${dcWallet} (${process.env.DUSHANBE_CITY_NAME || "OSHONA"})`,
+      alif: `${alifWallet} (${process.env.ALIF_NAME || "OSHONA"})`,
+      dcWallet, alifWallet,
+      dcLink: fillLink(process.env.DC_PAY_URL || "", dcWallet),
+      alifLink: fillLink(process.env.ALIF_PAY_URL || "", alifWallet),
+      comment: o.paymentCode, amount: o.total, qr,
+    },
+  });
 });
 
 // Як фармоишро дидан (муштарӣ бо id, админ бо токен)
@@ -373,6 +440,50 @@ app.patch("/api/reservations/:id", authRequired, (req, res) => {
   if (status) r.status = status;
   writeJSON("reservations.json", reservations);
   res.json(r);
+});
+
+// ---------- Promo / Промокодҳо ----------
+app.get("/api/promos", authRequired, (req, res) => res.json(promos));
+
+app.post("/api/promos", authRequired, (req, res) => {
+  let { code, type, value, minTotal } = req.body || {};
+  code = String(code || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  if (!code || value == null || Number(value) <= 0)
+    return res.status(400).json({ error: "Код ва миқдори дуруст лозим." });
+  if (promos.some((p) => p.code === code))
+    return res.status(400).json({ error: "Ин код аллакай ҳаст." });
+  const promo = {
+    code, type: type === "amount" ? "amount" : "percent",
+    value: Number(value), minTotal: Math.max(0, Number(minTotal) || 0), active: true,
+  };
+  promos.unshift(promo);
+  writeJSON("promos.json", promos);
+  res.status(201).json(promo);
+});
+
+app.post("/api/promos/:code/toggle", authRequired, (req, res) => {
+  const p = promos.find((x) => x.code === String(req.params.code).toUpperCase());
+  if (!p) return res.status(404).json({ error: "Промокод ёфт нашуд." });
+  p.active = p.active === false;
+  writeJSON("promos.json", promos);
+  res.json(p);
+});
+
+app.delete("/api/promos/:code", authRequired, (req, res) => {
+  const code = String(req.params.code).toUpperCase();
+  if (!promos.some((x) => x.code === code))
+    return res.status(404).json({ error: "Промокод ёфт нашуд." });
+  promos = promos.filter((x) => x.code !== code);
+  writeJSON("promos.json", promos);
+  res.json({ ok: true });
+});
+
+// Санҷиши промокод ҳангоми фармоиш (бе логин)
+app.post("/api/promos/validate", (req, res) => {
+  const { code, total } = req.body || {};
+  const r = applyPromo(code, Number(total) || 0);
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json({ promo: r.promo, discount: r.discount, total: r.total });
 });
 
 // ---------- Admin stats ----------
