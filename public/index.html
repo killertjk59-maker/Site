@@ -31,7 +31,8 @@
       <a href="#contact">Тамос</a>
     </nav>
     <div class="header-actions">
-      <button class="icon-btn" id="searchBtn" aria-label="Search">⌕</button>
+      <button class="icon-btn" id="aiBtn" aria-label="OSHONA AI — тавсияи таом" title="OSHONA AI">✨</button>
+      <button class="icon-btn" id="searchBtn" aria-label="Ҷустуҷӯ">⌕</button>
       <button class="cart-btn" id="cartBtn">Сабад <b id="cartCount">0</b></button>
       <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
     </div>
@@ -72,7 +73,9 @@
         <button class="text-btn" id="allMenuBtn">Ҳамаи меню →</button>
       </div>
       <div class="filters reveal" id="filters"></div>
+      <div class="menu-status" id="menuStatus" hidden></div>
       <div class="food-grid" id="foodGrid"></div>
+      <div class="ai-entry reveal"><div><b>Намедонед, чӣ интихоб кунед?</b><small>OSHONA AI бо назардошти буҷет, таъм ва аллергияи шумо тавсия медиҳад.</small></div><button class="btn btn-primary" id="aiEntryBtn" type="button">✨ Тавсия гиред</button></div>
     </section>
 
     <section class="feature-banner reveal">
@@ -80,7 +83,7 @@
         <p class="eyebrow">ТАВСИЯИ CHEF</p>
         <h2>Oshona<br><em>Signature</em></h2>
         <p>Гӯшти мулоим, сабзавоти мавсимӣ ва соуси махсуси Chef.</p>
-        <button class="btn btn-light" data-add="8">Илова ба сабад — 79 с.</button>
+        <a class="btn btn-light" href="#menu">Ба меню рафтан</a>
       </div>
     </section>
 
@@ -142,7 +145,7 @@
   <div class="modal" id="foodModal"><button class="close" data-close>×</button><div id="foodModalContent"></div></div>
   <div class="modal small-modal" id="checkoutModal"><button class="close" data-close>×</button>
     <p class="eyebrow">CHECKOUT</p><h2>Фармоишро<br><em>тасдиқ кунед.</em></h2>
-    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><div class="promo-row"><input name="promo" id="promoInput" placeholder="🎟 Промокод (ихтиёрӣ)" autocomplete="off"><button type="button" id="promoApply">OK</button></div><div class="promo-info" id="promoInfo" hidden></div><div class="checkout-total" id="checkoutTotal"></div><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><button class="btn btn-primary full">Тасдиқ кардани фармоиш</button></form>
+    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><div class="promo-row"><input name="promo" id="promoInput" placeholder="🎟 Промокод (ихтиёрӣ)" autocomplete="off"><button type="button" id="promoApply">OK</button></div><div class="promo-info" id="promoInfo" hidden></div><div class="checkout-total" id="checkoutTotal"></div><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><p class="form-error" id="checkoutError" role="alert" hidden></p><button class="btn btn-primary full" id="checkoutSubmit">Тасдиқ кардани фармоиш</button></form>
   </div>
 
   <div class="modal small-modal pay-sheet" id="paySheet">
@@ -164,6 +167,8 @@
       <li>Дар app пул фиристед, кодро дар комментария нависед</li>
       <li>«Пардохт кардам ✓»-ро пахш кунед</li>
     </ol>
+    <a class="btn btn-ghost full tg-link" id="payTgLink" target="_blank" rel="noopener" hidden>📨 Telegram-ро пайваст кунед (ҳолати фармоиш)</a>
+    <p class="form-error" id="payError" role="alert" hidden></p>
     <button class="btn btn-primary full" id="payDoneBtn">Пардохт кардам ✓</button>
     <button class="btn btn-ghost full" id="payCancelBtn" style="margin-top:8px">Баъдтар</button>
   </div>
@@ -190,11 +195,30 @@
 
   <div class="modal small-modal" id="myOrdersModal"><button class="close" data-close>×</button>
     <p class="eyebrow">ФАРМОИШҲОИ МАН</p><h2>Таърихи<br><em>фармоишҳо.</em></h2>
-    <div class="mo-search"><input id="moPhone" type="tel" placeholder="+992 ..."><button id="myOrdersBtn" type="button">Ҷустуҷӯ</button></div>
+    <p class="mo-note">Фармоишҳое, ки аз ин дастгоҳ гузоштаед, нишон дода мешаванд. Барои дидани фармоиш аз дастгоҳи дигар, линки Telegram-ро истифода баред.</p>
     <div id="moList"></div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <section class="ai-screen" id="aiScreen" aria-label="OSHONA AI">
+    <div class="ai-head"><div><p class="eyebrow">OSHONA AI</p><h3>Чӣ бихӯрам?</h3></div><button id="aiClose" class="ai-close" aria-label="Пӯшидан">×</button></div>
+    <details class="ai-prefs" id="aiPrefs">
+      <summary>Мехоҳишҳо (буҷет, таъм, аллергия)</summary>
+      <div class="ai-prefs-body">
+        <label>Буҷет (с.)<input id="prefBudget" type="number" min="1" max="100000" step="1" placeholder="масалан 80"></label>
+        <label>Таъмҳо (вергул бо ҷудо)<input id="prefTastes" maxlength="200" placeholder="гӯшт, тунд, ширин"></label>
+        <label>Истисно / аллергия (вергул бо ҷудо)<input id="prefAvoid" maxlength="300" placeholder="шир, тухм, кунҷид"></label>
+        <label class="ai-check"><input id="prefMinor" type="checkbox"> Ман зери 18 соламам</label>
+        <p class="ai-hint">Калорияҳо танҳо аз таркиби ошхона ҳисоб мешаванд. Барои аллергия ҳатман ба персонал мурочиат кунед.</p>
+      </div>
+    </details>
+    <div class="ai-log" id="aiLog" aria-live="polite"></div>
+    <form class="ai-form" id="aiForm" autocomplete="off">
+      <input id="aiInput" maxlength="500" placeholder="Масалан: ман гушт намехӯрам, барои ду нафар чӣ?" required>
+      <button class="btn btn-primary" id="aiSend" type="submit">Фиристодан</button>
+    </form>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
   <script src="script.js"></script>
 </body>
 </html>

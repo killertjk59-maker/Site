@@ -65,3 +65,62 @@ body{padding-bottom:90px}
 .checkout-total .disc{color:#7bc47b;font-weight:700}
 .checkout-total b{font-size:18px;color:#d6b675}
 @media(max-width:560px){.tabbar button{padding:8px 10px;min-width:56px}}
+
+/* ===== v2: меню (ғизо, эътимод), AI, ҳолатҳо ===== */
+.menu-status{margin:14px 0;padding:14px 16px;border-radius:14px;background:#f3e7cf;color:#4a3a1c;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.menu-status p{margin:0}
+.food-image-empty{display:flex;align-items:center;justify-content:center;font-size:44px;background:#e4dccd}
+.food-nutri{font-size:12.5px;color:#5b5346;margin:6px 0 10px;line-height:1.5}
+.nutri b{color:#171512}
+.nutri-none{color:#7a7262;font-style:italic}
+.conf{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:4px;vertical-align:middle}
+.conf-high{background:#d7ecd9;color:#1f5a2a}
+.conf-medium{background:#f3e7cf;color:#6b4f12}
+.conf-low{background:#f1d6d6;color:#7a2d2d}
+.allergens{margin:14px 0}
+.allergens h4,.ingredients h4,.food-nutri-box h4{margin:0 0 6px;font-size:14px}
+.allergen-chip{display:inline-block;margin:0 6px 6px 0;padding:4px 10px;border-radius:20px;background:#f1d6d6;color:#7a2d2d;font-size:12px}
+.ing-list{margin:0 0 14px 18px;font-size:14px;line-height:1.6}
+.food-nutri-box{background:#f5f1e9;border-radius:12px;padding:12px 14px;margin:12px 0}
+.food-nutri-box p{margin:0}
+.muted{color:#7a7262;font-size:13px}
+.cart-noimg{width:64px;height:64px;border-radius:10px;background:#e4dccd;display:flex;align-items:center;justify-content:center;font-size:24px}
+.ai-entry{margin-top:28px;background:#171512;color:#f5f1e9;border-radius:18px;padding:20px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ai-entry small{display:block;color:#bdb49f;margin-top:4px;max-width:520px}
+.form-error{color:#9b2c2c;background:#fbe9e9;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px}
+.tg-link{display:block;text-align:center;text-decoration:none;margin-bottom:10px}
+.mo-note{font-size:13px;color:#6f6759;margin:0 0 14px}
+.mo-reject{display:block;color:#9b2c2c;margin-top:4px}
+.ai-screen{position:fixed;inset:0;z-index:3100;background:#f5f1e9;display:none;flex-direction:column}
+.ai-screen.show{display:flex}
+.ai-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:#171512;color:#f5f1e9}
+.ai-head h3{margin:2px 0 0;font-size:22px}
+.ai-head .eyebrow{margin:0;color:#d6b675}
+.ai-close{border:0;background:#d6b675;color:#171512;font-size:24px;width:44px;height:44px;border-radius:12px;cursor:pointer}
+.ai-prefs{background:#ebe4d4;padding:10px 16px;font-size:14px}
+.ai-prefs summary{cursor:pointer;font-weight:600;padding:4px 0}
+.ai-prefs-body{display:grid;gap:8px;padding:8px 0 4px}
+.ai-prefs-body label{display:grid;gap:4px;font-size:13px;color:#4a4439}
+.ai-prefs-body input[type=text],.ai-prefs-body input:not([type]),.ai-prefs-body input[type=number]{padding:10px 12px;border-radius:10px;border:1px solid #cbbf9f;background:#fff;font-size:15px}
+.ai-check{display:flex!important;align-items:center;gap:8px}
+.ai-hint{font-size:12px;color:#6f6759;margin:4px 0 0}
+.ai-log{flex:1;overflow:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px}
+.ai-msg{max-width:94%;padding:12px 14px;border-radius:16px;font-size:15px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.ai-user{align-self:flex-end;background:#171512;color:#f5f1e9;border-bottom-right-radius:4px}
+.ai-bot{align-self:flex-start;background:#fff;color:#171512;border-bottom-left-radius:4px;box-shadow:0 1px 0 #e0d6c2}
+.ai-bot p{margin:0 0 6px}
+.ai-bot small{display:block;color:#6f6759;font-size:12px;margin-top:4px;white-space:normal}
+.ai-source{font-weight:600;color:#8a6a1f!important}
+.ai-notice{color:#7a4a12!important}
+.ai-notes{color:#4a4439!important}
+.ai-disclaimer{color:#6f6759!important;border-top:1px solid #e6dcc6;padding-top:6px;margin-top:8px}
+.ai-card{background:#f5f1e9;border-radius:12px;padding:10px 12px;margin-top:8px;white-space:normal}
+.ai-card h4{margin:0 0 4px;font-size:15px}
+.ai-card .add{margin-top:6px;border:0;border-radius:8px;background:#d4b16d;color:#171512;padding:7px 12px;font-weight:700;cursor:pointer}
+.ai-nutri{color:#4a4439!important}
+.ai-error{color:#9b2c2c!important;background:#fbe9e9}
+.ai-pending{opacity:.6}
+.ai-form{display:flex;gap:8px;padding:10px 12px 16px;background:#ebe4d4}
+.ai-form input{flex:1;padding:13px 14px;border-radius:12px;border:1px solid #cbbf9f;font-size:16px;background:#fff;outline:none}
+.ai-form button{border:0;border-radius:12px;padding:0 16px;font-weight:700;cursor:pointer}
+.ai-form button:disabled{opacity:.5;cursor:not-allowed}

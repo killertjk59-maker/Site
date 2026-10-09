@@ -1,19 +1,27 @@
 {
   "name": "oshona-backend",
-  "version": "1.0.0",
-  "description": "OSHONA restaurant — backend (Express + JSON storage)",
+  "version": "2.0.0",
+  "description": "OSHONA restaurant — backend (Express + JSON storage, OpenRouter AI, Telegram)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "check": "node scripts/check-syntax.js",
+    "test": "node --test",
+    "webhook": "node scripts/telegram-set-webhook.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.4.0",
     "qrcode": "^1.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
   }
 }
