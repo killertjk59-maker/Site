@@ -1,0 +1,20 @@
+{
+  "_comment": "Танзимоти OSHONA AI (OpenRouter). Калид ҳаргиз дар ин файл нест — танҳо OPENROUTER_API_KEY дар муҳити сервер. ID-ҳои моделҳо бояд ба таври даврӣ бо GET https://openrouter.ai/api/v1/models/{id}/endpoints санҷида шаванд (endpoint-и фаъол бояд дошта бошад).",
+  "primaryModel": "google/gemma-4-31b-it:free",
+  "fallbackModels": [
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-4-26b-a4b-it:free"
+  ],
+  "verifiedAt": "2026-10-09",
+  "verifiedNote": "Ҳар се ID бо endpoint-и фаъол ва narx 0 дар API-и расмии OpenRouter тафтиш шуданд.",
+  "maxOutputTokens": 700,
+  "temperature": 0.3,
+  "timeoutMs": 20000,
+  "maxRetriesPerModel": 2,
+  "baseBackoffMs": 500,
+  "maxBackoffMs": 4000,
+  "maxRetryAfterMs": 5000,
+  "dailyRequestLimit": 500,
+  "maxUserMessageChars": 500,
+  "maxHistoryTurns": 4
+}

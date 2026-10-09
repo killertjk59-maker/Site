@@ -1,321 +1,856 @@
-const foods=[
-{id:1,name:"Паста Трюфель",cat:"Асосӣ",price:68,img:"https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1000&q=80",desc:"Пастаи хонагӣ бо креми пармезан, занбӯруғ ва равғани трюфель."},
-{id:2,name:"Стейк OSHONA",cat:"Асосӣ",price:119,img:"https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=1000&q=80",desc:"Гӯшти мулоим бо сабзавоти мавсимӣ ва соуси махсуси chef."},
-{id:3,name:"Бургер Classic",cat:"Fast Food",price:49,img:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1000&q=80",desc:"Булочкаи бирёншуда, гӯшти 100% гов, панир ва соуси хонагӣ."},
-{id:4,name:"Caesar",cat:"Салат",price:42,img:"https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1000&q=80",desc:"Салати тару тоза бо мурғ, пармезан ва dressing-и классикӣ."},
-{id:5,name:"Pizza Burrata",cat:"Pizza",price:62,img:"https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=1000&q=80",desc:"Pizza бо помидор, mozzarella, burrata ва райҳони тару тоза."},
-{id:6,name:"Cheesecake",cat:"Ширинӣ",price:35,img:"https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80",desc:"Cheesecake-и нарм бо соуси буттамева ва меваҳои мавсимӣ."},
-{id:7,name:"Mojito Fresh",cat:"Нӯшокиҳо",price:24,img:"https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=1000&q=80",desc:"Лимӯ, наъно, сода ва шарбати табиӣ — бе алкогол."},
-{id:8,name:"Chef Signature",cat:"Chef",price:79,img:"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1000&q=80",desc:"Таоми махсуси chef бо гӯшти мулоим, сабзавот ва соуси OSHONA."}
-];
+/* OSHONA — сайти мизоҷ.
+ * Қоидаҳо:
+ *  - ҳама матни динамикӣ бо esc() ҳатман тоза мешавад (XSS);
+ *  - меню танҳо аз сервер (/api/foods) меояд; ягон меню-и демо дар код нест;
+ *  - паёми «муваффақ» танҳо пас аз тасдиқи сервер (HTTP 2xx) нишон дода мешавад;
+ *  - фармоишҳои мизоҷ бо токени дастрасӣ (X-Order-Token) идора мешаванд; телефон барои ҷустуҷӯ нест;
+ *  - скрипти инлайн ва onclick/onerror нест (CSP: script-src 'self').
+ */
+"use strict";
 
-let cart=JSON.parse(localStorage.getItem("oshonaCart")||"[]");
-const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+/* ---------- Ёрирасонҳо ---------- */
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
+const ESC_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;" };
+const esc = (v) => String(v === undefined || v === null ? "" : v).replace(/[&<>"'`]/g, (c) => ESC_MAP[c]);
+/** Танҳо URL-и https ё файли аз сервер боршуда (/uploads/...) иҷозат аст */
+const safeImageUrl = (u) => {
+  const s = String(u || "");
+  return /^https:\/\/[^\s"'<>]+$/i.test(s) || /^\/uploads\/[A-Za-z0-9._-]+$/.test(s) ? s : "";
+};
+const setText = (sel, text) => { const el = $(sel); if (el) el.textContent = String(text); };
+const CONF = { high: "эътимод: баланд", medium: "эътимод: миёна", low: "эътимод: паст (тахминӣ)" };
 
-window.addEventListener("load",()=>setTimeout(()=>$("#loader").classList.add("hide"),600));
-window.addEventListener("scroll",()=>$("#header").classList.toggle("scrolled",scrollY>40));
-
-const categories=["Ҳама","Асосӣ","Fast Food","Салат","Pizza","Ширинӣ","Нӯшокиҳо"];
-$("#filters").innerHTML=categories.map((c,i)=>`<button class="filter ${i===0?"active":""}" data-cat="${c}">${c}</button>`).join("");
-
-function renderFoods(cat="Ҳама"){
-  const list=cat==="Ҳама"?foods:foods.filter(f=>f.cat===cat);
-  $("#foodGrid").innerHTML=list.map(f=>`
-    <article class="food-card reveal" data-id="${f.id}">
-      <div class="food-image" style="background-image:url('${f.img}')"></div>
-      <div class="food-info"><div class="food-top"><h3>${f.name}</h3><span class="price">${f.price} с.</span></div>
-      <p>${f.desc}</p><button class="add" data-add="${f.id}">+ Ба сабад</button></div>
-    </article>`).join("");
-  observeReveals();
+function store(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v === null || v === undefined ? fallback : v;
+  } catch { return fallback; }
 }
-renderFoods();
+function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ҳеҷ */ } }
 
-$("#filters").addEventListener("click",e=>{
- const b=e.target.closest(".filter"); if(!b)return;
- $$(".filter").forEach(x=>x.classList.remove("active")); b.classList.add("active"); renderFoods(b.dataset.cat);
-});
-
-document.addEventListener("click",e=>{
- const add=e.target.closest("[data-add]"); if(add){addToCart(+add.dataset.add);return}
- const card=e.target.closest(".food-card"); if(card && !e.target.closest("button")) openFood(+card.dataset.id);
- if(e.target.matches("[data-close]")) closeAll();
- if(e.target.id==="cartBtn") openCart();
- if(e.target.id==="checkoutBtn") openCheckout();
- if(e.target.id==="heroReserve"){document.querySelector("#reservation").scrollIntoView({behavior:"smooth"})}
-});
-
-function addToCart(id){
- const item=cart.find(x=>x.id===id); if(item)item.qty++; else cart.push({id,qty:1});
- saveCart(); toast("Ба сабад илова шуд ✓");
+class ApiError extends Error {
+  constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
-function saveCart(){localStorage.setItem("oshonaCart",JSON.stringify(cart)); renderCart();}
-function renderCart(){
- const count=cart.reduce((s,x)=>s+x.qty,0); $("#cartCount").textContent=count;const _tc=document.getElementById("tabCartCount");if(_tc)_tc.textContent=count;
- const items=$("#cartItems"); $("#cartEmpty").style.display=cart.length?"none":"block";
- items.innerHTML=cart.map(x=>{const f=foods.find(a=>a.id===x.id);return `<div class="cart-row"><img src="${f.img}"><div><h4>${f.name}</h4><small>${f.price} с.</small><div class="qty"><button data-minus="${f.id}">−</button><span>${x.qty}</span><button data-plus="${f.id}">+</button></div></div><strong>${f.price*x.qty} с.</strong></div>`}).join("");
- $("#cartTotal").textContent=cart.reduce((s,x)=>s+foods.find(f=>f.id===x.id).price*x.qty,0)+" с.";
-}
-renderCart();
 
-document.addEventListener("click",e=>{
- if(e.target.dataset.plus){const x=cart.find(a=>a.id==e.target.dataset.plus);x.qty++;saveCart()}
- if(e.target.dataset.minus){const x=cart.find(a=>a.id==e.target.dataset.minus);x.qty--;if(x.qty<=0)cart=cart.filter(a=>a!==x);saveCart()}
-});
-
-function openCart(){closeModals();$("#overlay").classList.add("show");$("#cartDrawer").classList.add("open");document.body.classList.add("lock")}
-function openFood(id){const f=foods.find(x=>x.id===id);$("#foodModalContent").innerHTML=`<div class="modal-food"><img src="${f.img}"><div><p class="eyebrow">${f.cat}</p><h2>${f.name}</h2><p>${f.desc}</p><strong class="price">${f.price} с.</strong><button class="btn btn-primary full" style="margin-top:25px" data-add="${f.id}">Ба сабад илова кардан</button></div></div>`;$("#overlay").classList.add("show");$("#foodModal").classList.add("show");document.body.classList.add("lock")}
-function openCheckout(){
-  if(!cart.length){toast("Аввал ба сабад хӯрок илова кунед.");return}
-  _promo=null;document.getElementById("promoInput").value="";document.getElementById("promoInfo").hidden=true;
-  updateCheckoutTotal();
-  $("#cartDrawer").classList.remove("open");$("#checkoutModal").classList.add("show")
-}
-function closeAll(){closeModals();$("#overlay").classList.remove("show");document.body.classList.remove("lock")}
-function closeModals(){$$("#foodModal,.small-modal").forEach(x=>x.classList.remove("show"));$("#cartDrawer").classList.remove("open")}
-$("#overlay").addEventListener("click",closeAll);
-
-$("#checkoutForm").addEventListener("submit",e=>{e.preventDefault();const order={...Object.fromEntries(new FormData(e.target)),items:cart,date:new Date().toISOString()};localStorage.setItem("lastOshonaOrder",JSON.stringify(order));cart=[];saveCart();closeAll();toast("Фармоиши шумо қабул шуд! ✓");e.target.reset()});
-$("#reservationForm").addEventListener("submit",e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));localStorage.setItem("oshonaReservation",JSON.stringify(d));e.target.reset();toast("Миз барои шумо банд карда шуд! ✓")});
-$("#searchBtn").addEventListener("click",()=>openSearch());
-$("#menuToggle").addEventListener("click",()=>$("#nav").classList.toggle("open"));
-$("#allMenuBtn").addEventListener("click",()=>{renderFoods();document.querySelector("#menu").scrollIntoView({behavior:"smooth"})});
-
-function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2300)}
-function observeReveals(){const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.12});$$(".reveal:not(.visible)").forEach(x=>obs.observe(x))}
-observeReveals();
-
-/* ===== OSHONA BACKEND CONNECTION ===== */
-const OSHONA_API = "/api";
-async function apiRequest(path, options={}) {
-  const response = await fetch(OSHONA_API + path, {
-    ...options,
-    headers: {"Content-Type":"application/json", ...(options.headers||{})}
-  });
-  const data = await response.json().catch(()=>({}));
-  if (!response.ok) throw new Error(data.error || "API error");
+/** Даъвати API. Хатогиҳо ApiError мепартоянд (матни сервер — барои корбар). */
+async function api(path, { method = "GET", body, token } = {}) {
+  const headers = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers["X-Order-Token"] = token;
+  let res;
+  try {
+    res = await fetch("/api" + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: "same-origin",
+    });
+  } catch {
+    throw new ApiError(0, "Пайвасти шабака нест. Лутфан, интернетро санҷед.");
+  }
+  const text = await res.text();
+  let data = {};
+  try { data = JSON.parse(text); } catch { /* ҷавоби матнӣ */ }
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : res.status === 429 ? "Дархостҳо зиёданд. Каме интизор шавед." : `Хатогӣ (${res.status})`;
+    throw new ApiError(res.status, msg, data && data.code);
+  }
   return data;
 }
 
-async function syncMenuFromBackend() {
-  try {
-    const data = await apiRequest("/foods");
-    if (Array.isArray(data) && data.length) {
-      foods.length = 0;
-      data.forEach(f => foods.push({id:f.id,name:f.name,cat:f.category,price:f.price,img:f.image,desc:f.description}));
-      renderFoods();
-    }
-  } catch (e) { console.warn("Backend unavailable; local menu remains active.", e.message); }
+/* ---------- Ҳолат ---------- */
+function loadCart() {
+  const raw = store("oshonaCart", []);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((x) => ({ id: Number(x && x.id), qty: Math.floor(Number(x && x.qty)) }))
+    .filter((x) => Number.isInteger(x.id) && x.id > 0 && Number.isInteger(x.qty) && x.qty >= 1 && x.qty <= 20)
+    .slice(0, 30);
 }
-syncMenuFromBackend();
+function loadOrders() {
+  const raw = store("oshonaOrders", []);
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && Number.isInteger(Number(x.id)) && typeof x.token === "string" && x.token.length >= 16)
+    .map((x) => ({ id: Number(x.id), token: String(x.token), total: Number(x.total) || 0, createdAt: String(x.createdAt || "") }))
+    .slice(0, 20);
+}
 
-/* Capture-phase handler replaces the demo-only checkout handler with the real API flow. */
-const realCheckout = document.getElementById("checkoutForm");
-if (realCheckout) realCheckout.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  e.stopImmediatePropagation();
+const state = {
+  foods: [],
+  menuLoaded: false,
+  menuError: "",
+  cart: loadCart(),
+  orders: loadOrders(),
+  promo: null,
+  chat: [],
+  aiEnabled: false,
+  telegramBot: null,
+  currency: "TJS",
+};
+
+const findFood = (id) => state.foods.find((f) => f.id === id) || null;
+const cartLines = () => state.cart.map((x) => ({ ...x, food: findFood(x.id) })).filter((x) => x.food);
+const cartSubtotal = () => cartLines().reduce((s, x) => s + x.food.price * x.qty, 0);
+const cartCount = () => state.cart.reduce((s, x) => s + x.qty, 0);
+function saveCart() { save("oshonaCart", state.cart); renderCart(); }
+function saveOrders() { save("oshonaOrders", state.orders); }
+
+/* ---------- Оғоз ---------- */
+window.addEventListener("load", () => setTimeout(() => $("#loader").classList.add("hide"), 500));
+window.addEventListener("scroll", () => $("#header").classList.toggle("scrolled", window.scrollY > 40));
+
+async function loadConfig() {
   try {
-    const form = Object.fromEntries(new FormData(realCheckout));
-    const paymentMethod = form.method === "cash" ? "cash" : "online";
-    const order = await apiRequest("/orders", {
-      method:"POST",
-      body:JSON.stringify({
-        customerName:form.name,
-        phone:form.phone,
-        address:form.address,
-        method:"delivery",
-        paymentMethod,
-        paymentProvider: paymentMethod === "online" ? "manual" : null,
-        items:cart.map(x=>({foodId:x.id,quantity:x.qty})),
-        promo: _promo ? _promo.promo : null
-      })
+    const cfg = await api("/config");
+    state.aiEnabled = Boolean(cfg.aiEnabled);
+    state.telegramBot = cfg.telegramBotUsername || null;
+    state.currency = cfg.currency || "TJS";
+  } catch { /* конфиг ихтиёрӣ аст */ }
+  $("#aiBtn").hidden = false;
+}
+
+async function loadMenu() {
+  try {
+    const list = await api("/foods");
+    state.foods = Array.isArray(list) ? list : [];
+    state.menuLoaded = true;
+    state.menuError = "";
+  } catch (err) {
+    state.menuError = err.message;
+  }
+  renderFilters();
+  renderFoods(currentCategory);
+  if (state.menuLoaded) pruneCart();
+  renderCart();
+  renderMenuStatus();
+}
+
+/** Агар таом аз меню нест шуда бошад, аз сабад хориҷ мешавад (танҳо вақте ки меню дуруст боргирӣ шуд) */
+function pruneCart() {
+  const before = state.cart.length;
+  state.cart = state.cart.filter((x) => findFood(x.id));
+  if (state.cart.length !== before) {
+    save("oshonaCart", state.cart);
+    toast("Баъзе таомҳо дастнорас шуданд ва аз сабад хориҷ карда шуданд.");
+  }
+}
+
+function renderMenuStatus() {
+  const box = $("#menuStatus");
+  if (state.menuError) {
+    box.hidden = false;
+    box.innerHTML = `<p>Меню ҳоло дастнорас аст: ${esc(state.menuError)}</p><button class="btn btn-ghost" type="button" data-retry-menu>Аз нав кӯшиш</button>`;
+  } else if (state.menuLoaded && !state.foods.length) {
+    box.hidden = false;
+    box.innerHTML = "<p>Ҳоло таом дар меню нест.</p>";
+  } else {
+    box.hidden = true;
+    box.innerHTML = "";
+  }
+}
+
+/* ---------- Меню ---------- */
+let currentCategory = "Ҳама";
+
+function renderFilters() {
+  const cats = [...new Set(state.foods.filter((f) => f.available !== false).map((f) => f.category))];
+  const all = ["Ҳама", ...cats];
+  $("#filters").innerHTML = all
+    .map((c) => `<button class="filter ${c === currentCategory ? "active" : ""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`)
+    .join("");
+}
+
+function nutritionLine(n) {
+  if (!n || n.status !== "computed") return '<span class="nutri-none">Калория: маълумот нест</span>';
+  return `<span class="nutri"><b>${esc(n.calories)} ккал</b> · сафеда ${esc(n.protein)} г · равған ${esc(n.fat)} г · карбо ${esc(n.carbs)} г</span>` +
+    ` <span class="conf conf-${esc(n.confidence)}">${esc(CONF[n.confidence] || "")}</span>`;
+}
+
+function renderFoods(cat = "Ҳама") {
+  currentCategory = cat;
+  const list = state.foods.filter((f) => f.available !== false && (cat === "Ҳама" || f.category === cat));
+  $("#foodGrid").innerHTML = list
+    .map((f) => {
+      const img = safeImageUrl(f.image);
+      return `
+    <article class="food-card reveal visible" data-open="${esc(f.id)}">
+      ${img ? `<div class="food-image" style="background-image:url('${esc(img)}')"></div>` : '<div class="food-image food-image-empty">🍽</div>'}
+      <div class="food-info">
+        <div class="food-top"><h3>${esc(f.name)}</h3><span class="price">${esc(f.price)} с.</span></div>
+        <p>${esc(f.description)}</p>
+        <div class="food-nutri">${nutritionLine(f.nutrition)}</div>
+        <button class="add" data-add="${esc(f.id)}" type="button">+ Ба сабад</button>
+      </div>
+    </article>`;
+    })
+    .join("");
+  if (!list.length && state.menuLoaded) {
+    $("#foodGrid").innerHTML = '<div class="empty">Дар ин категория таом нест.</div>';
+  }
+}
+
+function openFood(id) {
+  const f = findFood(id);
+  if (!f) return;
+  const img = safeImageUrl(f.image);
+  const allergens = (f.allergens || []).map((a) => `<span class="allergen-chip">${esc(a.label)}</span>`).join("");
+  const ingredients = (f.ingredients || []).length
+    ? `<ul class="ing-list">${f.ingredients.map((i) => `<li>${esc(i.name)} — ${esc(i.grams)} г</li>`).join("")}</ul>`
+    : '<p class="muted">Таркиби таом ҳоло дар сайт нишон дода намешавад.</p>';
+  const n = f.nutrition || {};
+  const src = n.status === "computed" && n.source ? `<small class="muted">Манбаъ: ${esc(n.source)}</small>` : "";
+  $("#foodModalContent").innerHTML = `
+    <div class="modal-food">
+      ${img ? `<img src="${esc(img)}" alt="${esc(f.name)}">` : ""}
+      <div>
+        <p class="eyebrow">${esc(f.category)}</p>
+        <h2>${esc(f.name)}</h2>
+        <p>${esc(f.description)}</p>
+        <div class="food-nutri-box">
+          <h4>Ғизо${f.weightG ? ` · порсия ${esc(f.weightG)} г` : ""}</h4>
+          <p>${nutritionLine(n)}</p>
+          ${src}
+        </div>
+        ${allergens ? `<div class="allergens"><h4>Аллергенҳо</h4>${allergens}</div>` : ""}
+        <div class="ingredients"><h4>Таркиб</h4>${ingredients}</div>
+        <strong class="price">${esc(f.price)} с.</strong>
+        <button class="btn btn-primary full" style="margin-top:20px" data-add="${esc(f.id)}" type="button">Ба сабад илова кардан</button>
+      </div>
+    </div>`;
+  $("#foodModal").classList.add("show");
+  showOverlay();
+}
+
+/* ---------- Сабад ---------- */
+function addToCart(id) {
+  const food = findFood(id);
+  if (!food) { toast("Ин таом дастнорас аст."); return; }
+  const item = state.cart.find((x) => x.id === id);
+  if (item) {
+    if (item.qty >= 20) { toast("Барои як таом ҳадди 20 адад аст."); return; }
+    item.qty += 1;
+  } else {
+    state.cart.push({ id, qty: 1 });
+  }
+  saveCart();
+  toast("Ба сабад илова шуд ✓");
+}
+
+function renderCart() {
+  const count = cartCount();
+  setText("#cartCount", count);
+  setText("#tabCartCount", count);
+  const lines = cartLines();
+  $("#cartEmpty").style.display = lines.length ? "none" : "block";
+  $("#cartItems").innerHTML = lines
+    .map((x) => {
+      const img = safeImageUrl(x.food.image);
+      return `<div class="cart-row">
+        ${img ? `<img src="${esc(img)}" alt="">` : '<div class="cart-noimg">🍽</div>'}
+        <div><h4>${esc(x.food.name)}</h4><small>${esc(x.food.price)} с.</small>
+          <div class="qty"><button type="button" data-minus="${esc(x.id)}">−</button><span>${esc(x.qty)}</span><button type="button" data-plus="${esc(x.id)}">+</button></div>
+        </div>
+        <strong>${esc(x.food.price * x.qty)} с.</strong></div>`;
+    })
+    .join("");
+  setText("#cartTotal", `${cartSubtotal()} с.`);
+}
+
+function changeQty(id, delta) {
+  const item = state.cart.find((x) => x.id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) state.cart = state.cart.filter((x) => x !== item);
+  if (item.qty > 20) item.qty = 20;
+  saveCart();
+}
+
+function openCart() {
+  closeModals();
+  $("#overlay").classList.add("show");
+  $("#cartDrawer").classList.add("open");
+  document.body.classList.add("lock");
+}
+
+function openCheckout() {
+  if (!cartLines().length) { toast("Аввал ба сабад хӯрок илова кунед."); return; }
+  state.promo = null;
+  $("#promoInput").value = "";
+  $("#promoInfo").hidden = true;
+  setErr($("#checkoutError"), "");
+  updateCheckoutTotal();
+  $("#cartDrawer").classList.remove("open");
+  $("#checkoutModal").classList.add("show");
+  showOverlay();
+}
+
+function updateCheckoutTotal() {
+  const sub = cartSubtotal();
+  const d = state.promo ? state.promo.discount : 0;
+  const box = $("#checkoutTotal");
+  box.textContent = "";
+  box.append(`Ҷамъ: ${sub} с.`);
+  if (d) {
+    const span = document.createElement("span");
+    span.className = "disc";
+    span.textContent = ` −${d} с. 🎟 ${state.promo.promo}`;
+    box.append(span);
+  }
+  const b = document.createElement("b");
+  b.textContent = `Ҳамагӣ: ${sub - d} с.`;
+  box.append(document.createElement("br"), b);
+}
+
+function setErr(el, msg) {
+  if (!el) return;
+  el.hidden = !msg;
+  el.textContent = msg || "";
+}
+
+/* ---------- Фармоиш ---------- */
+function rememberOrder(order) {
+  if (!order || !order.accessToken) return;
+  state.orders = [{ id: order.id, token: order.accessToken, total: order.total, createdAt: order.createdAt || new Date().toISOString() },
+    ...state.orders.filter((o) => o.id !== order.id)].slice(0, 20);
+  saveOrders();
+}
+
+async function submitCheckout(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const btn = $("#checkoutSubmit");
+  const f = new FormData(form);
+  const method = f.get("method") === "cash" ? "cash" : "online";
+  setErr($("#checkoutError"), "");
+  btn.disabled = true;
+  try {
+    const order = await api("/orders", {
+      method: "POST",
+      body: {
+        customerName: String(f.get("name") || ""),
+        phone: String(f.get("phone") || ""),
+        address: String(f.get("address") || ""),
+        method: "delivery",
+        paymentMethod: method,
+        paymentProvider: method === "online" ? "manual" : null,
+        items: cartLines().map((x) => ({ foodId: x.id, quantity: x.qty })),
+        promo: state.promo ? state.promo.promo : null,
+      },
     });
-
-    if (paymentMethod === "online") {
-      localStorage.setItem("oshonaPendingOrder", JSON.stringify(order));
-      _promo=null;cart=[]; saveCart(); realCheckout.reset();
-      document.getElementById("checkoutModal").classList.remove("show");
+    // Фақат пас аз тасдиқи сервер: фармоиш сабт шуд
+    rememberOrder(order);
+    state.cart = [];
+    state.promo = null;
+    saveCart();
+    form.reset();
+    $("#checkoutModal").classList.remove("show");
+    if (method === "online") {
       showPaymentSheet(order);
-      return;
     } else {
-      toast("Фармоиши нақдӣ қабул шуд ✓");
+      closeAll();
+      toast(`Фармоиши #${order.id} қабул шуд ✓ (пардохт ҳангоми расонидан)`);
     }
-    _promo=null;cart=[]; saveCart(); closeAll(); realCheckout.reset();
   } catch (err) {
-    toast("Хатогӣ: " + err.message);
+    setErr($("#checkoutError"), err.message);
+  } finally {
+    btn.disabled = false;
   }
-}, true);
+}
 
-/* ===== OSHONA RESERVATION → BACKEND ===== */
-const realReservation = document.getElementById("reservationForm");
-if (realReservation) realReservation.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-  const data = Object.fromEntries(new FormData(realReservation));
-  try {
-    await apiRequest("/reservations", { method: "POST", body: JSON.stringify(data) });
-    toast("Миз барои шумо банд карда шуд! ✓");
-  } catch (err) {
-    // Агар сервер дастнорас бошад — мисли пештара дар браузер нигоҳ дор
-    localStorage.setItem("oshonaReservation", JSON.stringify(data));
-    toast("Миз банд шуд (офлайн) ✓");
-  }
-  realReservation.reset();
-}, true);
+/* ---------- Пардохт (равзанаи пардохт) ---------- */
+let payCtx = null;
 
-/* ===== PAY SHEET (равзанаи пардохт мисли Google Pay) ===== */
-let _payOrderId = null;
-let _payInfo = {};
 function copyText(txt) {
   if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt);
   return Promise.reject(new Error("clipboard"));
 }
-function payWithBank(which) {
-  const isAlif = which === "alif";
-  const wallet = isAlif ? _payInfo.alifWallet : _payInfo.dcWallet;
-  const link = isAlif ? _payInfo.alifLink : _payInfo.dcLink;
-  const name = isAlif ? "Алиф" : "Душанбе Сити";
-  const txt = "Хамён: " + wallet + "\nСумма: " + _payInfo.amount + " с.\nКод: " + _payInfo.code;
-  copyText(txt).then(() => {
-    if (link) { toast("Нусха шуд! " + name + " кушода мешавад..."); setTimeout(() => window.open(link, "_blank"), 500); }
-    else toast("Нусха шуд ✓ " + name + " app → хамён " + wallet + " → " + _payInfo.amount + " с.");
-  }).catch(() => { prompt("Дар " + name + " app пардохт кунед:", txt); if (link) window.open(link, "_blank"); });
+
+function safeHttpLink(u) {
+  return /^https:\/\/[^\s"'<>]+$/i.test(String(u || "")) ? String(u) : "";
 }
+
+function payWithBank(which) {
+  if (!payCtx) return;
+  const info = payCtx.info;
+  const isAlif = which === "alif";
+  const wallet = isAlif ? info.alifWallet : info.dcWallet;
+  const link = safeHttpLink(isAlif ? info.alifLink : info.dcLink);
+  const name = isAlif ? "Алиф" : "Душанбе Сити";
+  const txt = `Хамён: ${wallet}\nСумма: ${payCtx.total} с.\nКод: ${payCtx.code}`;
+  copyText(txt)
+    .then(() => {
+      if (link) {
+        toast(`Нусха шуд! ${name} кушода мешавад...`);
+        setTimeout(() => window.open(link, "_blank", "noopener"), 500);
+      } else {
+        toast(`Нусха шуд ✓ ${name} app → ҳамён ${wallet} → ${payCtx.total} с.`);
+      }
+    })
+    .catch(() => { window.prompt(`Дар ${name} app пардохт кунед:`, txt); });
+}
+
 function showPaymentSheet(order) {
-  const p = order.paymentInstructions || {};
-  _payOrderId = order.orderId;
-  _payInfo = { amount: order.total, code: p.comment, dcWallet: p.dcWallet, alifWallet: p.alifWallet, dcLink: p.dcLink, alifLink: p.alifLink };
-  document.getElementById("payOrderId").textContent = "#" + order.orderId;
-  document.getElementById("payAmount").textContent = order.total + " с.";
-  document.getElementById("payDC").textContent = p.dushanbeCity || "—";
-  document.getElementById("payAlif").textContent = p.alif || "—";
-  document.getElementById("payCode").textContent = p.comment || "—";
-  document.getElementById("payAlifBtn").onclick = () => payWithBank("alif");
-  document.getElementById("payDCBtn").onclick = () => payWithBank("dc");
-  const qr = document.getElementById("payQR");
-  if (p.qr) { qr.src = p.qr; qr.parentElement.style.display = "block"; }
-  else { qr.parentElement.style.display = "none"; }
-  document.getElementById("overlay").classList.add("show");
-  document.getElementById("paySheet").classList.add("show");
+  const info = order.paymentInstructions || {};
+  payCtx = {
+    id: order.orderId || order.id,
+    token: order.token || order.accessToken || tokenFor(order.orderId || order.id),
+    total: order.total,
+    code: info.comment || order.paymentCode || "—",
+    info,
+  };
+  setErr($("#payError"), "");
+  setText("#payOrderId", `#${payCtx.id}`);
+  setText("#payAmount", `${order.total} с.`);
+  setText("#payDC", info.dushanbeCity || "—");
+  setText("#payAlif", info.alif || "—");
+  setText("#payCode", payCtx.code);
+  const qr = $("#payQR");
+  const qrSrc = typeof info.qr === "string" && /^data:image\/png;base64,/.test(info.qr) ? info.qr : "";
+  if (qrSrc) { qr.src = qrSrc; qr.parentElement.style.display = "block"; }
+  else { qr.removeAttribute("src"); qr.parentElement.style.display = "none"; }
+  const tg = safeTelegramLink(order.telegramLink);
+  const tgEl = $("#payTgLink");
+  tgEl.hidden = !tg;
+  if (tg) tgEl.href = tg;
+  $("#paySheet").classList.add("show");
+  showOverlay();
   document.body.classList.add("lock");
 }
-document.getElementById("payDoneBtn").addEventListener("click", async () => {
-  if (!_payOrderId) return;
+
+function tokenFor(id) {
+  const rec = state.orders.find((o) => o.id === Number(id));
+  return rec ? rec.token : "";
+}
+
+function safeTelegramLink(u) {
+  return /^https:\/\/t\.me\/[A-Za-z0-9_]+\?start=[A-Za-z0-9_-]+$/.test(String(u || "")) ? String(u) : "";
+}
+
+async function confirmPaymentSubmitted() {
+  if (!payCtx) return;
+  const btn = $("#payDoneBtn");
+  btn.disabled = true;
+  setErr($("#payError"), "");
   try {
-    await apiRequest("/orders/" + _payOrderId + "/payment-submitted", { method: "POST" });
-    localStorage.removeItem("oshonaPendingOrder");
-    document.getElementById("paySheet").classList.remove("show");
+    // Пас аз ҷавоби мусбати сервер танҳо паём нишон дода мешавад
+    await api(`/orders/${payCtx.id}/payment-submitted`, { method: "POST", token: payCtx.token });
+    $("#paySheet").classList.remove("show");
     closeAll();
     toast("Пардохт барои санҷиши админ фиристода шуд ✓");
-  } catch (err) { toast("Хатогӣ: " + err.message); }
+  } catch (err) {
+    setErr($("#payError"), err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------- Фармоишҳои ман (бо токен, бе телефон) ---------- */
+const STATUS_TEXT = {
+  AWAITING_PAYMENT: "Интизори пардохт",
+  PAYMENT_REVIEW: "Пардохт санҷида мешавад",
+  PAYMENT_REJECTED: "Пардохт рад шуд",
+  NEW: "Қабул шуд",
+  CONFIRMED: "Пардохт тасдиқ шуд",
+  COOKING: "Дар ошхона",
+  DELIVERING: "Дар роҳ",
+  DONE: "Анҷом ✓",
+  CANCELLED: "Бекор шуд",
+};
+
+function openMyOrders() {
+  closeAll();
+  $("#myOrdersModal").classList.add("show");
+  showOverlay();
+  renderMyOrders();
+}
+
+async function renderMyOrders() {
+  const box = $("#moList");
+  if (!state.orders.length) {
+    box.innerHTML = '<div class="empty">Дар ин дастгоҳ фармоиш нест.</div>';
+    return;
+  }
+  box.innerHTML = '<div class="empty">Боргирӣ…</div>';
+  const results = await Promise.all(
+    state.orders.map(async (rec) => {
+      try {
+        return { rec, order: await api(`/orders/${rec.id}`, { token: rec.token }) };
+      } catch (err) {
+        return { rec, error: err };
+      }
+    })
+  );
+  // Фармоишҳое, ки токенашон нодуруст аст, аз дастгоҳ хориҷ мешаванд
+  const gone = results.filter((r) => r.error && r.error.status === 404).map((r) => r.rec.id);
+  if (gone.length) {
+    state.orders = state.orders.filter((o) => !gone.includes(o.id));
+    saveOrders();
+  }
+  box.innerHTML = results
+    .filter((r) => !gone.includes(r.rec.id))
+    .map(({ rec, order, error }) => {
+      if (error) return `<div class="mo-card"><div class="mo-head"><b>#${esc(rec.id)}</b></div><small>${esc(error.message)}</small></div>`;
+      const items = (order.items || []).map((i) => `${esc(i.name)} × ${esc(i.quantity)}`).join(", ");
+      const pay = order.status === "AWAITING_PAYMENT" && order.paymentMethod === "online"
+        ? `<button type="button" data-order-pay="${esc(order.id)}">Пардохт кардан</button>` : "";
+      const reject = order.status === "PAYMENT_REJECTED" && order.rejectReason
+        ? `<small class="mo-reject">Сабаб: ${esc(order.rejectReason)}</small>` : "";
+      return `<div class="mo-card">
+        <div class="mo-head"><b>#${esc(order.id)}</b><span class="mo-status">${esc(STATUS_TEXT[order.status] || order.status)}</span></div>
+        <small>${items}</small>${reject}
+        <div class="mo-foot"><b>${esc(order.total)} с.</b>${pay}</div>
+      </div>`;
+    })
+    .join("");
+}
+
+async function payOldOrder(id) {
+  const token = tokenFor(id);
+  if (!token) { toast("Фармоиш ёфт нашуд."); return; }
+  try {
+    const info = await api(`/orders/${id}/pay-info`, { token });
+    $("#myOrdersModal").classList.remove("show");
+    showPaymentSheet({ orderId: info.orderId, total: info.total, paymentInstructions: info.paymentInstructions, token });
+  } catch (err) {
+    toast(`Хатогӣ: ${err.message}`);
+  }
+}
+
+/* ---------- Бронкунии миз ---------- */
+async function submitReservation(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  try {
+    await api("/reservations", { method: "POST", body: data });
+    form.reset();
+    toast("Миз барои шумо банд карда шуд! ✓");
+  } catch (err) {
+    // Маълумот нигоҳ дошта мешавад; муваффақият гуфта намешавад
+    toast(`Бронкунӣ анҷом наёфт: ${err.message}`);
+  }
+}
+
+/* ---------- Ҷустуҷӯ ---------- */
+function openSearch() {
+  $("#searchScreen").classList.add("show");
+  document.body.classList.add("lock");
+  $("#searchInput").value = "";
+  renderSearch();
+  setTimeout(() => $("#searchInput").focus(), 100);
+}
+function closeSearch() {
+  $("#searchScreen").classList.remove("show");
+  if (!$(".modal.show")) document.body.classList.remove("lock");
+}
+function renderSearch() {
+  const q = ($("#searchInput").value || "").toLowerCase().trim();
+  const list = q
+    ? state.foods.filter((f) => `${f.name} ${f.description} ${f.category}`.toLowerCase().includes(q))
+    : state.foods;
+  $("#searchResults").innerHTML = list.length
+    ? list.map((f) => {
+        const img = safeImageUrl(f.image);
+        return `<div class="sr-row">
+          ${img ? `<img src="${esc(img)}" alt="" loading="lazy" data-hide-on-error>` : ""}
+          <div><h4>${esc(f.name)}</h4><small>${esc(f.category)} · ${esc(f.price)} с.</small></div>
+          <button type="button" data-add="${esc(f.id)}">+</button></div>`;
+      }).join("")
+    : '<div class="empty">Ҳеҷ чиз ёфт нашуд.</div>';
+}
+
+/* ---------- AI (тавсия) ---------- */
+const PREFS_KEY = "oshonaPrefs";
+
+function readPrefsForm() {
+  const budgetRaw = $("#prefBudget").value.trim();
+  const split = (s) => s.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 12);
+  return {
+    budget: budgetRaw ? Number(budgetRaw) : null,
+    tastes: split($("#prefTastes").value).slice(0, 8),
+    avoid: split($("#prefAvoid").value),
+    minor: $("#prefMinor").checked,
+  };
+}
+
+function loadPrefsForm() {
+  const p = store(PREFS_KEY, {});
+  $("#prefBudget").value = p.budget || "";
+  $("#prefTastes").value = (p.tastes || []).join(", ");
+  $("#prefAvoid").value = (p.avoid || []).join(", ");
+  $("#prefMinor").checked = Boolean(p.minor);
+}
+
+function openAi() {
+  closeAll();
+  $("#aiScreen").classList.add("show");
+  document.body.classList.add("lock");
+  loadPrefsForm();
+  if (!state.chat.length) {
+    appendBot({
+      reply: state.aiEnabled
+        ? "Салом! Ман OSHONA AI ҳастам. Мегӯед, чӣ мехоҳед: буҷет, таъм ё истисноҳо. Тавсияҳо аз меню ва таркиби ҳақиқии ошхона аст."
+        : "Салом! Ман тавсияи меню медиҳам. AI ҳозир фаъол нест, аммо тавсияҳо аз рӯи буҷет ва таъми шумо тартиб дода мешаванд.",
+      recommendations: [],
+      notes: [],
+    });
+  }
+  setTimeout(() => $("#aiInput").focus(), 150);
+}
+function closeAi() {
+  $("#aiScreen").classList.remove("show");
+  if (!$(".modal.show")) document.body.classList.remove("lock");
+}
+
+function appendUser(text) {
+  const log = $("#aiLog");
+  const div = document.createElement("div");
+  div.className = "ai-msg ai-user";
+  div.textContent = text;
+  log.append(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+function appendBot(res) {
+  const log = $("#aiLog");
+  const div = document.createElement("div");
+  div.className = "ai-msg ai-bot";
+  const p = document.createElement("p");
+  p.textContent = res.reply || "";
+  div.append(p);
+  if (res.source) {
+    const src = document.createElement("small");
+    src.className = "ai-source";
+    src.textContent = res.source === "ai" ? "OSHONA AI" : "Тавсияи қоидавӣ (AI ҳоло дастнорас)";
+    div.append(src);
+  }
+  if (res.notice) {
+    const n = document.createElement("small");
+    n.className = "ai-notice";
+    n.textContent = res.notice;
+    div.append(n);
+  }
+  (res.notes || []).forEach((t) => {
+    const n = document.createElement("small");
+    n.className = "ai-notes";
+    n.textContent = t;
+    div.append(n);
+  });
+  (res.recommendations || []).forEach((r) => {
+    const card = document.createElement("div");
+    card.className = "ai-card";
+    const h = document.createElement("h4");
+    h.textContent = `${r.name} — ${r.price} с.`;
+    card.append(h);
+    if (r.reason) {
+      const rs = document.createElement("small");
+      rs.textContent = r.reason;
+      card.append(rs);
+    }
+    const n = r.nutrition;
+    const nl = document.createElement("small");
+    nl.className = "ai-nutri";
+    nl.textContent = n && n.calories !== null && n.calories !== undefined
+      ? `${n.calories} ккал · сафеда ${n.protein} г · равған ${n.fat} г · карбо ${n.carbs} г (${CONF[n.confidence] || "эътимод"})`
+      : "Калория: маълумот нест";
+    card.append(nl);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "add";
+    btn.dataset.add = String(r.foodId);
+    btn.textContent = "+ Ба сабад";
+    card.append(btn);
+    div.append(card);
+  });
+  if (res.disclaimer) {
+    const d = document.createElement("small");
+    d.className = "ai-disclaimer";
+    d.textContent = res.disclaimer;
+    div.append(d);
+  }
+  log.append(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function sendAi(text) {
+  const message = text.trim();
+  if (!message) return;
+  const prefs = readPrefsForm();
+  save(PREFS_KEY, prefs);
+  appendUser(message);
+  state.chat.push({ role: "user", content: message });
+  const pending = document.createElement("div");
+  pending.className = "ai-msg ai-bot ai-pending";
+  pending.textContent = "…";
+  $("#aiLog").append(pending);
+  $("#aiSend").disabled = true;
+  try {
+    const history = state.chat.slice(-7, -1).map((m) => ({ role: m.role, content: m.content }));
+    const res = await api("/ai/chat", { method: "POST", body: { message, history, preferences: prefs } });
+    pending.remove();
+    appendBot(res);
+    state.chat.push({ role: "assistant", content: res.reply || "" });
+  } catch (err) {
+    pending.textContent = `Хатогӣ: ${err.message}`;
+    pending.classList.add("ai-error");
+  } finally {
+    $("#aiSend").disabled = false;
+  }
+}
+
+/* ---------- Умумӣ: модал, overlay, toast, таб ---------- */
+function showOverlay() { $("#overlay").classList.add("show"); }
+function closeModals() {
+  $$("#foodModal, .small-modal, #aiScreen, #searchScreen").forEach((x) => x.classList.remove("show"));
+  $("#cartDrawer").classList.remove("open");
+}
+function closeAll() {
+  closeModals();
+  $("#overlay").classList.remove("show");
+  document.body.classList.remove("lock");
+}
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = String(msg);
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+function observeReveals() {
+  const obs = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }), { threshold: 0.12 });
+  $$(".reveal:not(.visible)").forEach((x) => obs.observe(x));
+}
+
+function switchMainTab(name) {
+  $$("#tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  closeAll();
+  if (name === "home") window.scrollTo({ top: 0, behavior: "smooth" });
+  if (name === "menu") $("#menu").scrollIntoView({ behavior: "smooth" });
+  if (name === "search") openSearch();
+  if (name === "cart") openCart();
+  if (name === "orders") openMyOrders();
+}
+
+/* ---------- Рӯйдодҳо (делегатсия, бе onclick) ---------- */
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  const addBtn = t.closest("[data-add]");
+  if (addBtn) { e.stopPropagation(); addToCart(Number(addBtn.dataset.add)); return; }
+  const plus = t.closest("[data-plus]");
+  if (plus) { changeQty(Number(plus.dataset.plus), 1); return; }
+  const minus = t.closest("[data-minus]");
+  if (minus) { changeQty(Number(minus.dataset.minus), -1); return; }
+  const cat = t.closest("[data-cat]");
+  if (cat && cat.closest("#filters")) {
+    $$("#filters .filter").forEach((x) => x.classList.toggle("active", x === cat));
+    renderFoods(cat.dataset.cat);
+    return;
+  }
+  const open = t.closest("[data-open]");
+  if (open && !t.closest("button")) { openFood(Number(open.dataset.open)); return; }
+  const pay = t.closest("[data-order-pay]");
+  if (pay) { payOldOrder(Number(pay.dataset.orderPay)); return; }
+  const copy = t.closest("[data-copy]");
+  if (copy) {
+    const txt = $("#" + copy.dataset.copy).textContent;
+    copyText(txt).then(() => toast("Нусхабардорӣ шуд ✓")).catch(() => window.prompt("Нусхабардорӣ кунед:", txt));
+    return;
+  }
+  if (t.closest("[data-retry-menu]")) { state.menuError = ""; loadMenu(); return; }
+  if (t.closest("[data-close]")) { closeAll(); return; }
+  if (t.id === "cartBtn") { openCart(); return; }
+  if (t.id === "checkoutBtn") { openCheckout(); return; }
+  if (t.id === "heroReserve") { $("#reservation").scrollIntoView({ behavior: "smooth" }); return; }
+  if (t.id === "aiBtn" || t.id === "aiEntryBtn") { openAi(); return; }
 });
-document.getElementById("payCancelBtn").addEventListener("click", () => {
-  document.getElementById("paySheet").classList.remove("show");
+
+document.addEventListener("error", (e) => {
+  if (e.target && e.target.matches && e.target.matches("img[data-hide-on-error]")) e.target.style.display = "none";
+}, true);
+
+/* ---------- Формаҳо ва тугмаҳо ---------- */
+$("#overlay").addEventListener("click", closeAll);
+$("#checkoutForm").addEventListener("submit", submitCheckout);
+$("#reservationForm").addEventListener("submit", submitReservation);
+$("#searchBtn").addEventListener("click", openSearch);
+$("#searchClose").addEventListener("click", closeSearch);
+$("#searchInput").addEventListener("input", renderSearch);
+$("#aiClose").addEventListener("click", closeAi);
+$("#menuToggle").addEventListener("click", () => $("#nav").classList.toggle("open"));
+$("#allMenuBtn").addEventListener("click", () => { renderFoods("Ҳама"); renderFilters(); $("#menu").scrollIntoView({ behavior: "smooth" }); });
+$("#payDoneBtn").addEventListener("click", confirmPaymentSubmitted);
+$("#payAlifBtn").addEventListener("click", () => payWithBank("alif"));
+$("#payDCBtn").addEventListener("click", () => payWithBank("dc"));
+$("#payCancelBtn").addEventListener("click", () => {
   closeAll();
   toast("Фармоиш сабт шуд. Баъдтар пардохт карда метавонед.");
 });
-document.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-copy]");
-  if (!b) return;
-  const txt = document.getElementById(b.dataset.copy).textContent;
-  copyText(txt).then(() => toast("Нусхабардорӣ шуд ✓")).catch(() => { prompt("Нусхабардорӣ кунед:", txt); });
+$("#promoApply").addEventListener("click", async () => {
+  const code = $("#promoInput").value.trim();
+  const info = $("#promoInfo");
+  if (!code) { state.promo = null; info.hidden = true; updateCheckoutTotal(); return; }
+  try {
+    const r = await api("/promos/validate", { method: "POST", body: { code, total: cartSubtotal() } });
+    state.promo = r;
+    info.hidden = false;
+    info.textContent = `🎟 ${r.promo}: −${r.discount} с.`;
+    updateCheckoutTotal();
+    toast("Промокод татбиқ шуд ✓");
+  } catch (err) {
+    state.promo = null;
+    info.hidden = true;
+    updateCheckoutTotal();
+    toast(`Хатогӣ: ${err.message}`);
+  }
 });
+$("#aiForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = $("#aiInput");
+  const text = input.value;
+  input.value = "";
+  sendAi(text);
+});
+$$("#tabbar button").forEach((b) => b.addEventListener("click", () => switchMainTab(b.dataset.tab)));
 
-/* ===== OSHONA PWA — насб ҳамчун барнома ===== */
+/* ---------- PWA ---------- */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((e) => console.warn("SW:", e.message));
+    navigator.serviceWorker.register("/sw.js").catch(() => { /* SW ихтиёрӣ аст */ });
   });
 }
-let _deferredPrompt = null;
+let deferredPrompt = null;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
-  _deferredPrompt = e;
-  if (!localStorage.getItem("oshonaInstallHide")) document.getElementById("installBanner").hidden = false;
+  deferredPrompt = e;
+  if (!store("oshonaInstallHide", false)) $("#installBanner").hidden = false;
 });
-document.getElementById("installBtn").addEventListener("click", async () => {
-  if (!_deferredPrompt) { toast("Дар Chrome: меню ⋮ → «Насб кардани барнома»"); return; }
-  _deferredPrompt.prompt();
-  await _deferredPrompt.userChoice;
-  _deferredPrompt = null;
-  document.getElementById("installBanner").hidden = true;
+$("#installBtn").addEventListener("click", async () => {
+  if (!deferredPrompt) { toast("Дар Chrome: меню ⋮ → «Насб кардани барнома»"); return; }
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $("#installBanner").hidden = true;
 });
-document.getElementById("installClose").addEventListener("click", () => {
-  document.getElementById("installBanner").hidden = true;
-  localStorage.setItem("oshonaInstallHide", "1");
+$("#installClose").addEventListener("click", () => {
+  $("#installBanner").hidden = true;
+  save("oshonaInstallHide", true);
 });
 
-/* ===== OSHONA APP — таббар, ҷустуҷӯ, промо, фармоишҳои ман ===== */
-let _promo = null;
-function cartSubtotal(){return cart.reduce((s,x)=>{const f=foods.find(a=>a.id===x.id);return s+(f?f.price*x.qty:0)},0)}
-function updateCheckoutTotal(){
-  const sub=cartSubtotal(),d=_promo?_promo.discount:0;
-  document.getElementById("checkoutTotal").innerHTML="Ҷамъ: "+sub+" с."+(d?' <span class="disc">−'+d+' с. 🎟 '+_promo.promo+"</span>":"")+"<br><b>Ҳамагӣ: "+(sub-d)+" с.</b>";
+/* ---------- Оғози барнома ---------- */
+observeReveals();
+renderCart();
+renderMyOrdersBadge();
+loadConfig();
+loadMenu();
+
+function renderMyOrdersBadge() {
+  // Танҳо барои дастрасии осон: шумораи фармоишҳои дастгоҳ
+  const btn = $('#tabbar button[data-tab="orders"]');
+  if (btn && state.orders.length) btn.setAttribute("aria-label", `Фармоишҳо (${state.orders.length})`);
 }
-function switchMainTab(name){
-  document.querySelectorAll("#tabbar button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
-  closeAll();
-  if(name==="home")window.scrollTo({top:0,behavior:"smooth"});
-  if(name==="menu")document.querySelector("#menu").scrollIntoView({behavior:"smooth"});
-  if(name==="search")openSearch();
-  if(name==="cart")openCart();
-  if(name==="orders")openMyOrders();
-}
-document.querySelectorAll("#tabbar button").forEach(b=>b.addEventListener("click",()=>switchMainTab(b.dataset.tab)));
-function openSearch(){
-  document.getElementById("searchScreen").classList.add("show");
-  document.body.classList.add("lock");
-  const inp=document.getElementById("searchInput");inp.value="";renderSearch();
-  setTimeout(()=>inp.focus(),100);
-}
-function closeSearch(){document.getElementById("searchScreen").classList.remove("show");if(!document.querySelector(".modal.show"))document.body.classList.remove("lock")}
-function renderSearch(){
-  const q=(document.getElementById("searchInput").value||"").toLowerCase().trim();
-  const list=q?foods.filter(f=>((f.name||"")+" "+(f.desc||"")+" "+(f.cat||"")).toLowerCase().includes(q)):foods;
-  document.getElementById("searchResults").innerHTML=list.length?list.map(f=>
-    '<div class="sr-row"><img src="'+f.img+'" onerror="this.style.display=\'none\'"><div><h4>'+f.name+'</h4><small>'+f.cat+' · '+f.price+' с.</small></div><button data-add="'+f.id+'">+</button></div>'
-  ).join(""):'<div class="empty">Ҳеҷ чиз ёфт нашуд.</div>';
-}
-document.getElementById("searchInput").addEventListener("input",renderSearch);
-document.getElementById("searchClose").addEventListener("click",closeSearch);
-function statusText(s){return {NEW:"Нав ✓",AWAITING_PAYMENT:"Интизори пардохт",PAYMENT_REVIEW:"Дар санҷиш",CONFIRMED:"Тасдиқ шуд",COOKING:"Дар ошхона",DELIVERING:"Дар роҳ",DONE:"Анҷом ✓",CANCELLED:"Бекор",PAYMENT_REJECTED:"Пардохт рад шуд"}[s]||s}
-function openMyOrders(){
-  closeAll();
-  document.getElementById("moPhone").value=localStorage.getItem("oshonaPhone")||"";
-  document.getElementById("moList").innerHTML="";
-  document.getElementById("overlay").classList.add("show");
-  document.getElementById("myOrdersModal").classList.add("show");
-  document.body.classList.add("lock");
-}
-async function loadMyOrders(){
-  const phone=document.getElementById("moPhone").value.trim();
-  if(phone.length<6){toast("Рақами телефонро нависед.");return}
-  localStorage.setItem("oshonaPhone",phone);
-  const box=document.getElementById("moList");box.innerHTML="<div class='empty'>Ҷустуҷӯ...</div>";
-  try{
-    const list=await apiRequest("/orders/by-phone?phone="+encodeURIComponent(phone));
-    if(!list.length){box.innerHTML="<div class='empty'>Фармоиш ёфт нашуд.</div>";return}
-    box.innerHTML=list.map(o=>
-      '<div class="mo-card"><div class="mo-head"><b>#'+o.id+'</b><span class="mo-status">'+statusText(o.status)+'</span></div>'+
-      "<small>"+(o.items||[]).map(i=>i.name+" × "+i.quantity).join(", ")+"</small>"+
-      '<div class="mo-foot"><b>'+o.total+' с.</b>'+(o.status==="AWAITING_PAYMENT"?'<button onclick="payOldOrder('+o.id+')">Пардохт кардан</button>':"")+"</div></div>"
-    ).join("");
-  }catch(e){box.innerHTML="<div class='empty'>"+e.message+"</div>"}
-}
-async function payOldOrder(id){
-  try{
-    const info=await apiRequest("/orders/"+id+"/pay-info");
-    document.getElementById("myOrdersModal").classList.remove("show");
-    showPaymentSheet({orderId:info.orderId,total:info.total,currency:info.currency,paymentInstructions:info.paymentInstructions});
-  }catch(e){toast("Хатогӣ: "+e.message)}
-}
-document.getElementById("myOrdersBtn").addEventListener("click",loadMyOrders);
-document.getElementById("promoApply").addEventListener("click",async()=>{
-  const code=document.getElementById("promoInput").value.trim();
-  const info=document.getElementById("promoInfo");
-  if(!code){_promo=null;info.hidden=true;updateCheckoutTotal();return}
-  try{
-    const r=await apiRequest("/promos/validate",{method:"POST",body:JSON.stringify({code,total:cartSubtotal()})});
-    _promo=r;info.hidden=false;info.textContent="🎟 "+r.promo+": −"+r.discount+" с.";
-    updateCheckoutTotal();toast("Промокод татбиқ шуд ✓");
-  }catch(e){_promo=null;info.hidden=true;updateCheckoutTotal();toast("Хатогӣ: "+e.message)}
-});
