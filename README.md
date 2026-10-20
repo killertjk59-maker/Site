@@ -90,7 +90,7 @@ Settings → Networking → **Generate Domain**. Админ: `https://САЙТ/a
 - **Расмҳо:** танҳо JPEG/PNG/WebP, бо сигнатураи файл (magic bytes), ҳадди 5 MB. HTML/SVG рад мешаванд.
 - **Сарлавҳаҳо:** CSP (`script-src 'self'`), `nosniff`, `frame-ancestors 'none'`, `no-store` барои API.
 - **CORS:** танҳо origin-ҳои `CORS_ORIGINS`.
-- **Service worker (`oshona-v2`):** ҳеҷ гоҳ API-и хусусӣ, фармоиш, админ ё пардохтро кэш намекунад; кэши кӯҳна (v1) пок карда мешавад.
+- **Service worker (`oshona-v3`):** ҳеҷ гоҳ API-и хусусӣ, фармоиш, админ ё пардохтро кэш намекунад; кэши кӯҳна (v1/v2) пок карда мешавад; прекаш: shell + fonts.css + 2 шрифти preload + hero.jpg (офлайн first-paint).
 - **XSS:** ҳамаи маълумоти динамикӣ дар frontend escape мешавад; скрипти инлайн ва `onclick` нест.
 
 ## 💳 Пардохт (дастӣ, ба таври қаблӣ)
@@ -176,11 +176,16 @@ Settings → Networking → **Generate Domain**. Админ: `https://САЙТ/a
 ## 🧪 Тестҳо
 
 ```bash
-npm test
+npm test          # 261 тест (node:test) — API, амният, пардохт, AI, калория, пешгӯӣ, Telegram, frontend jsdom
+npm run check     # node --check барои ҳамаи 39 JS-файл
+npm audit --audit-level=high
 ```
-Тестҳо: характеризатсия (ҷараёни ҷории фармоиш/пардохт), амният ва дастрасӣ, ҳисоби калория, пешгӯӣ (MAE/WAPE бо маълумоти маълум), ҷараёни фармоиш ва ҳисобот, OpenRouter (бо калиди **фейк**; 429, timeout, посухи холӣ, 401/402/403, квота), Telegram (webhook, ID-и админ, пайвастшавӣ), frontend (jsdom: XSS, сабад, офлайн, пардохт, админ).
+Тестҳо: характеризатсия (ҷараёни ҷории фармоиш/пардохт), амният ва дастрасӣ, ҳисоби калория, пешгӯӣ (MAE/WAPE бо маълумоти маълум), ҷараёни фармоиш ва ҳисобот, OpenRouter (бо калиди **фейк**; 429, timeout, посухи холӣ, 401/402/403, квота), Telegram (webhook, ID-и админ, пайвастшавӣ), frontend (jsdom: XSS, сабад, офлайн, пардохт, админ, Phase A/B/C).
 
-**Маҳдудият:** тестҳо OpenRouter ва Telegram-ро бо серверҳои сохта месанҷанд. Интеграсияи **воқеӣ** бо OpenRouter ва Telegram дар муҳити санҷиши мо тестшуда нест.
+**🏗 CI (GitHub Actions):** `.github/workflows/ci.yml` — ҳар push ба `main`/`arena/**` ва ҳар PR ба `main`:
+Node 20+22, `npm ci` → `npm run check` → `npm test` → `npm audit --audit-level=high` (high/critical CI-ро мебанданд).
+
+**Маҳдудият:** тестҳо OpenRouter ва Telegram-ро бо серверҳои сохта месанҷанд. Интеграсияи **воқеӣ** бо OpenRouter ва Telegram дар муҳити санҷиши мо тестшуда нест. Тестҳои браузери воқеӣ (Playwright) мавҷуд нестанд — frontend танҳо jsdom санҷида шудааст.
 
 ## ⚠️ Тағйироти муҳим нисбат ба v1.5
 
@@ -196,6 +201,14 @@ npm test
 ## 🧭 Кор барои оянда (маълум)
 
 - Нусхаи якум: JSON + як инстанс. Барои ресторани калон ва бисёр нусха — PostgreSQL.
-- Контакт, Instagram/Telegram дар футер ҳоло ҷойгиранда (`+992 90 000 00 00`, `#`) — бо маълумоти воқеӣ иваз кунед.
+- Телефони контакт (`+992 90 000 00 00`) ва адрес (Рӯдакӣ 45) ҷойгирандаанд — бо маълумоти воқеӣ иваз кунед (footer-и нав линкҳои мурдаи Instagram/Telegram-ро дигар надорад).
 - Номи ресторан ва адрес дар сайт (Рӯдакӣ 45) — санҷед.
 - Сабаби рад ба мизоҷ нишон дода мешавад, аммо ҳанӯз огоҳии Telegram-и автоматӣ барои рад/тасдиқ нест.
+- ID-ҳои моделҳои OpenRouter бояд пеш аз ҳар демо бозсанҷида шаванд (`verifiedAt` дар `config/ai.json` нав карда шавад).
+
+## 🎨 Phase A–D (2026-10-20) — вазъи кунунӣ
+
+- **Phase A:** шрифтҳо/расмҳо худмизбон (бе Google Fonts/CDN), CI, ислоҳи дастрасӣ ва checkout, валидатсияи `/img/`. Ҳисобот: `docs/PHASE-A-CHANGES.md`.
+- **Phase B:** дизайн-система бо CSS-токенҳо (сабзи ҷангалӣ + крем), skeleton/loading, retry/clear дар AI, footer-и касбӣ, нест кардани рейтинги сохта. Ҳисобот: `docs/PHASE-B-REPORT.md`.
+- **Phase C:** мустаҳкамкунии AI (prompt-injection тестҳо, ҳимояи Infinity-грамм, ислоҳи аллергени peanuts, санитизатори макро). Ҳисобот: `docs/PHASE-C-REPORT.md`.
+- **Phase D:** E2E-и сатҳи API (15/15), кэши статика (шрифт immutable), прекаши SW, README, намоиши олимпиада. Ҳисобот: `docs/PHASE-D`/`docs/FINAL-PROJECT-REPORT.md`.

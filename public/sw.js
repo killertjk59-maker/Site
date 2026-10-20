@@ -1,18 +1,22 @@
-/* OSHONA Service Worker (v2)
+/* OSHONA Service Worker (v3)
  * Қоидаҳо:
- *  - кэши кӯҳна (oshona-v1, ки API-и хусусиро нигоҳ медошт) ҳангоми activate нест карда мешавад;
+ *  - кэши кӯҳна (oshona-v1/v2) ҳангоми activate нест карда мешавад;
  *  - ҳеҷ гоҳ ҷавоби /api/ (фармоиш, админ, пардохт, бронкунӣ, AI) кэш намешавад;
  *  - дархостҳо бо Authorization ё X-Order-Token ҳеҷ гоҳ кэш намешаванд;
  *  - танҳо GET /api/foods (меню, ҷамъиятӣ) network-first кэш мешавад;
  *  - саҳифаҳои админ ва /uploads/ ҳеҷ гоҳ кэш намешаванд;
  *  - файлҳои статикии сайт cache-first; install ба ҳар як файл тобовар аст (як 404 нақшаро вайрон намекунад).
  */
-const CACHE = "oshona-v2";
+const CACHE = "oshona-v3"; // Phase D: + fonts.css, шрифтҳои preload, hero (offline first-paint)
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/style.css",
   "/script.js",
+  "/fonts.css",
+  "/fonts/dm-sans-latin-400-normal.woff2",
+  "/fonts/playfair-display-latin-600-normal.woff2",
+  "/img/hero.jpg",
   "/manifest.webmanifest",
   "/icons/apple-180.png",
   "/icons/icon-192.png",

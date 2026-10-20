@@ -552,6 +552,10 @@ function createApp(config, { logger = console, fetchImpl = globalThis.fetch, clo
   // ===== Файлҳои статикӣ =====
   const staticHeaders = (res, filePath) => {
     if (/\.(html|js|css|webmanifest)$/.test(filePath)) res.setHeader("Cache-Control", "no-cache");
+    // Phase D (D3): шрифтҳои худмизбон — устувор (immutable); расмҳои локалии репозиторӣ — 1 рӯз.
+    // /uploads/ (контенти админ) ва /api/ ба ин ҷо дахл надоранд — middleware/қоидаҳои алоҳида.
+    else if (/\.(woff2?|ttf)$/.test(filePath)) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    else if (/\.(jpe?g|png|webp|avif|ico)$/.test(filePath)) res.setHeader("Cache-Control", "public, max-age=86400");
   };
   app.get("/sw.js", (req, res) => {
     res.setHeader("Cache-Control", "no-cache");

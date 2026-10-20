@@ -4,7 +4,7 @@
     "name": "Паста Трюфель",
     "category": "Асосӣ",
     "price": 68,
-    "image": "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/pasta-truffle.jpg",
     "description": "Пастаи хонагӣ бо креми пармезан, занбӯруғ ва равғани трюфель.",
     "demo": true
   },
@@ -13,7 +13,7 @@
     "name": "Стейк OSHONA",
     "category": "Асосӣ",
     "price": 119,
-    "image": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/steak.jpg",
     "description": "Гӯшти мулоим бо сабзавоти мавсимӣ ва соуси махсуси chef.",
     "demo": true
   },
@@ -22,7 +22,7 @@
     "name": "Бургер Classic",
     "category": "Fast Food",
     "price": 49,
-    "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/burger.jpg",
     "description": "Булочкаи бирёншуда, гӯшти 100% гов, панир ва соуси хонагӣ.",
     "demo": true
   },
@@ -31,7 +31,7 @@
     "name": "Caesar",
     "category": "Салат",
     "price": 42,
-    "image": "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/caesar.jpg",
     "description": "Салати тару тоза бо мурғ, пармезан ва dressing-и классикӣ.",
     "demo": true
   },
@@ -40,7 +40,7 @@
     "name": "Pizza Burrata",
     "category": "Pizza",
     "price": 62,
-    "image": "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/pizza-burrata.jpg",
     "description": "Pizza бо помидор, mozzarella, burrata ва райҳони тару тоза.",
     "demo": true
   },
@@ -49,7 +49,7 @@
     "name": "Cheesecake",
     "category": "Ширинӣ",
     "price": 35,
-    "image": "https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/cheesecake.jpg",
     "description": "Cheesecake-и нарм бо соуси буттамева ва меваҳои мавсимӣ.",
     "demo": true
   },
@@ -58,7 +58,7 @@
     "name": "Mojito Fresh",
     "category": "Нӯшокиҳо",
     "price": 24,
-    "image": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/mojito.jpg",
     "description": "Лимӯ, наъно, сода ва шарбати табиӣ — бе алкогол.",
     "demo": true
   },
@@ -67,7 +67,7 @@
     "name": "Chef Signature",
     "category": "Chef",
     "price": 79,
-    "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1000&q=80",
+    "image": "/img/foods/chef-signature.jpg",
     "description": "Таоми махсуси chef бо гӯшти мулоим, сабзавот ва соуси OSHONA.",
     "demo": true
   }

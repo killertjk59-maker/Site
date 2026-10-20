@@ -13,12 +13,14 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <meta name="description" content="OSHONA — restaurant ordering and reservation website">
   <title>OSHONA — Restaurant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Шрифтҳо худмизбонанд (self-hosted): бе вобастагӣ ба шабакаи берунӣ (Phase A) -->
+  <link rel="preload" href="/fonts/dm-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/playfair-display-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a class="skip-link" href="#home">Ба мундариҷа гузаштан</a>
   <div class="loader" id="loader"><div class="loader-mark">O</div><p>OSHONA</p></div>
 
   <header class="header" id="header">
@@ -50,7 +52,7 @@
           <button class="btn btn-ghost" id="heroReserve">Миз фармоиш додан</button>
         </div>
         <div class="hero-meta">
-          <span>★ 4.9 / 5</span><i></i><span>Ҳар рӯз 09:00 — 23:00</span>
+          <span>🛵 Расонидан ё pickup</span><i></i><span>Ҳар рӯз 09:00 — 23:00</span><i></i><span>✨ Тавсияи AI</span>
         </div>
       </div>
       <div class="hero-scroll">SCROLL <span>↓</span></div>
@@ -94,9 +96,9 @@
         <h2>Аз ошхона то<br><em>дастархони шумо.</em></h2>
         <p>Дар OSHONA ҳар як компонент интихоб мешавад: аз нонҳои ҳаррӯза то гиёҳҳои тару тоза. Мо ба сифати хӯрок, суръати хизматрасонӣ ва ҷузъиёти хурд аҳамият медиҳем.</p>
         <div class="stats">
-          <div><strong>8+</strong><span>сол таҷриба</span></div>
-          <div><strong>40+</strong><span>таоми меню</span></div>
-          <div><strong>4.9</strong><span>рейтинги меҳмонон</span></div>
+          <div><strong>8+</strong><span>сол таҷриба (аз 2018)</span></div>
+          <div><strong>Онлайн</strong><span>фармоиш ва пардохт</span></div>
+          <div><strong>AI</strong><span>тавсияи шахсӣ</span></div>
         </div>
       </div>
     </section>
@@ -131,25 +133,40 @@
     </section>
   </main>
 
-  <footer><div class="logo"><span>O</span>SHONA</div><p>© 2026 OSHONA. Ҳамаи ҳуқуқҳо ҳифз шудаанд.</p><div><a href="#">Instagram</a><a href="#">Telegram</a></div></footer>
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col"><div class="logo"><span>O</span>SHONA</div><p>Таомҳои тоза, маҳсулоти босифат ва хизматрасонии муосир дар Душанбе. Фармоиши онлайн бо тасдиқи дастии пардохт.</p></div>
+      <div class="footer-col"><h4>Саҳифаҳо</h4><a href="#home">Асосӣ</a><a href="#menu">Меню</a><a href="#gallery">Галерея</a><a href="#reservation">Фармоиши миз</a><a href="#contact">Тамос</a></div>
+      <div class="footer-col"><h4>Тамос</h4><p>Душанбе, кӯчаи Рӯдакӣ 45</p><a href="tel:+992900000000">+992 90 000 00 00</a><p>Ҳар рӯз: 09:00 — 23:00</p></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 OSHONA. Ҳамаи ҳуқуқҳо ҳифз шудаанд.</p><p>Нархҳо ва меню аз сервери воқеӣ гирифта мешаванд.</p></div>
+  </footer>
 
-  <div class="overlay" id="overlay"></div>
-  <aside class="drawer" id="cartDrawer">
-    <div class="drawer-head"><h3>Сабади шумо</h3><button class="close" data-close>×</button></div>
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+  <aside class="drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-label="Сабади шумо">
+    <div class="drawer-head"><h3>Сабади шумо</h3><button class="close" data-close aria-label="Пӯшидан">×</button></div>
     <div id="cartItems"></div>
     <div class="cart-empty" id="cartEmpty">Сабад ҳоло холӣ аст.</div>
     <div class="cart-total"><span>Ҳамагӣ</span><strong id="cartTotal">0 с.</strong></div>
     <button class="btn btn-primary full" id="checkoutBtn">Офаридани фармоиш →</button>
   </aside>
 
-  <div class="modal" id="foodModal"><button class="close" data-close>×</button><div id="foodModalContent"></div></div>
-  <div class="modal small-modal" id="checkoutModal"><button class="close" data-close>×</button>
-    <p class="eyebrow">CHECKOUT</p><h2>Фармоишро<br><em>тасдиқ кунед.</em></h2>
-    <form id="checkoutForm"><input required name="name" placeholder="Ном"><input required name="phone" type="tel" placeholder="+992 ..."><input required name="address" placeholder="Суроғаи расонидан"><div class="promo-row"><input name="promo" id="promoInput" placeholder="🎟 Промокод (ихтиёрӣ)" autocomplete="off"><button type="button" id="promoApply">OK</button></div><div class="promo-info" id="promoInfo" hidden></div><div class="checkout-total" id="checkoutTotal"></div><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select><p class="form-error" id="checkoutError" role="alert" hidden></p><button class="btn btn-primary full" id="checkoutSubmit">Тасдиқ кардани фармоиш</button></form>
+  <div class="modal" id="foodModal" role="dialog" aria-modal="true" aria-label="Маълумоти таом"><button class="close" data-close aria-label="Пӯшидан">×</button><div id="foodModalContent"></div></div>
+  <div class="modal small-modal" id="checkoutModal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle"><button class="close" data-close aria-label="Пӯшидан">×</button>
+    <p class="eyebrow">CHECKOUT</p><h2 id="checkoutTitle">Фармоишро<br><em>тасдиқ кунед.</em></h2>
+    <form id="checkoutForm">
+      <label class="fld"><span>Ном</span><input required name="name" placeholder="Номи шумо" autocomplete="name"></label>
+      <label class="fld"><span>Телефон</span><input required name="phone" type="tel" placeholder="+992 ..." autocomplete="tel"></label>
+      <label class="fld"><span>Усули гирифтан</span><select name="fulfilment" id="fulfilmentSelect"><option value="delivery">🛵 Расонидан ба суроға</option><option value="pickup">🏪 Аз ресторан худам мегирам</option></select></label>
+      <label class="fld" id="addressField"><span>Суроғаи расонидан</span><input required name="address" id="addressInput" placeholder="Кӯча, хона" autocomplete="street-address"></label>
+      <div class="promo-row"><input name="promo" id="promoInput" placeholder="🎟 Промокод (ихтиёрӣ)" autocomplete="off" aria-label="Промокод"><button type="button" id="promoApply">OK</button></div><div class="promo-info" id="promoInfo" hidden></div><div class="checkout-total" id="checkoutTotal"></div>
+      <label class="fld"><span>Усули пардохт</span><select name="method"><option value="online">📱 Онлайн — Душанбе Сити / Алиф</option><option value="cash">💵 Нақдӣ ҳангоми гирифтани фармоиш</option></select></label>
+      <p class="form-error" id="checkoutError" role="alert" hidden></p><button class="btn btn-primary full" id="checkoutSubmit">Тасдиқ кардани фармоиш</button>
+    </form>
   </div>
 
-  <div class="modal small-modal pay-sheet" id="paySheet">
-    <p class="eyebrow">ПАРДОХТ · Мисли Google Pay</p>
+  <div class="modal small-modal pay-sheet" id="paySheet" role="dialog" aria-modal="true" aria-label="Пардохти фармоиш">
+    <p class="eyebrow">ПАРДОХТИ БЕХАТАР</p>
     <h2>Фармоиш <em id="payOrderId">#0</em></h2>
     <div class="pay-amount"><span id="payAmount">0 с.</span></div>
     <div class="pay-qr-wrap"><img id="payQR" alt="QR барои пардохт"><small>Бо Алиф ё Душанбе Сити app скан кунед</small></div>
@@ -188,19 +205,19 @@
     <button data-tab="cart">🧺<span>Сабад</span><b class="tab-badge" id="tabCartCount">0</b></button>
   </nav>
 
-  <div class="search-screen" id="searchScreen">
-    <div class="search-head"><input id="searchInput" placeholder="Номи таомро нависед... 🔍" autocomplete="off"><button id="searchClose" aria-label="Пӯшидан">×</button></div>
+  <div class="search-screen" id="searchScreen" role="dialog" aria-modal="true" aria-label="Ҷустуҷӯи меню">
+    <div class="search-head"><input id="searchInput" placeholder="Номи таомро нависед... 🔍" autocomplete="off" aria-label="Ҷустуҷӯи меню"><button id="searchClose" aria-label="Пӯшидан">×</button></div>
     <div class="search-results" id="searchResults"></div>
   </div>
 
-  <div class="modal small-modal" id="myOrdersModal"><button class="close" data-close>×</button>
+  <div class="modal small-modal" id="myOrdersModal" role="dialog" aria-modal="true" aria-label="Фармоишҳои ман"><button class="close" data-close aria-label="Пӯшидан">×</button>
     <p class="eyebrow">ФАРМОИШҲОИ МАН</p><h2>Таърихи<br><em>фармоишҳо.</em></h2>
     <p class="mo-note">Фармоишҳое, ки аз ин дастгоҳ гузоштаед, нишон дода мешаванд. Барои дидани фармоиш аз дастгоҳи дигар, линки Telegram-ро истифода баред.</p>
     <div id="moList"></div>
   </div>
 
-  <section class="ai-screen" id="aiScreen" aria-label="OSHONA AI">
-    <div class="ai-head"><div><p class="eyebrow">OSHONA AI</p><h3>Чӣ бихӯрам?</h3></div><button id="aiClose" class="ai-close" aria-label="Пӯшидан">×</button></div>
+  <section class="ai-screen" id="aiScreen" role="dialog" aria-modal="true" aria-label="OSHONA AI">
+    <div class="ai-head"><div><p class="eyebrow">OSHONA AI</p><h3>Чӣ бихӯрам?</h3></div><div><button id="aiClear" class="ai-clear" type="button" title="Сӯҳбатро аз нав оғоз кардан">♻ Тоза кардан</button><button id="aiClose" class="ai-close" aria-label="Пӯшидан">×</button></div></div>
     <details class="ai-prefs" id="aiPrefs">
       <summary>Мехоҳишҳо (буҷет, таъм, аллергия)</summary>
       <div class="ai-prefs-body">
@@ -213,7 +230,7 @@
     </details>
     <div class="ai-log" id="aiLog" aria-live="polite"></div>
     <form class="ai-form" id="aiForm" autocomplete="off">
-      <input id="aiInput" maxlength="500" placeholder="Масалан: ман гушт намехӯрам, барои ду нафар чӣ?" required>
+      <input id="aiInput" maxlength="500" placeholder="Масалан: ман гушт намехӯрам, барои ду нафар чӣ?" required aria-label="Савол ба OSHONA AI">
       <button class="btn btn-primary" id="aiSend" type="submit">Фиристодан</button>
     </form>
   </section>

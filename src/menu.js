@@ -8,6 +8,8 @@ const v = require("./validation");
 const nutrition = require("./nutrition");
 
 const IMAGE_LOCAL_RE = /^\/uploads\/[A-Za-z0-9._-]{1,120}$/;
+// Phase A: расмҳои статикӣ, ки бо репозиторий меоянд (public/img/...) — худмизбон, бе шабакаи берунӣ
+const IMAGE_STATIC_RE = /^\/img\/[A-Za-z0-9_-]{1,60}(?:\/[A-Za-z0-9_-]{1,60})*\.(?:jpg|jpeg|png|webp)$/;
 const IMAGE_HTTPS_RE = /^https:\/\/[^\s"'<>]{4,500}$/i;
 
 /** Майдонҳои стандартӣ барои таомҳои нав ё қадимӣ (файлҳои кӯҳна) */
@@ -37,7 +39,7 @@ function normalizeFood(raw) {
 function validateImage(value) {
   const s = v.str(value, { field: "Расм", max: 500 });
   if (!s) return "";
-  if (IMAGE_LOCAL_RE.test(s) || IMAGE_HTTPS_RE.test(s)) return s;
+  if (IMAGE_LOCAL_RE.test(s) || IMAGE_STATIC_RE.test(s) || IMAGE_HTTPS_RE.test(s)) return s;
   throw v.fail("Расм", "танҳо URL-и https:// ё файли аз сервер боршуда (/uploads/...) иҷозат аст");
 }
 

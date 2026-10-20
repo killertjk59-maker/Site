@@ -16,7 +16,7 @@ const esc = (v) => String(v === undefined || v === null ? "" : v).replace(/[&<>"
 /** Танҳо URL-и https ё файли аз сервер боршуда (/uploads/...) иҷозат аст */
 const safeImageUrl = (u) => {
   const s = String(u || "");
-  return /^https:\/\/[^\s"'<>]+$/i.test(s) || /^\/uploads\/[A-Za-z0-9._-]+$/.test(s) ? s : "";
+  return /^https:\/\/[^\s"'<>]+$/i.test(s) || /^\/uploads\/[A-Za-z0-9._-]+$/.test(s) || /^\/img\/[A-Za-z0-9_-]{1,60}(?:\/[A-Za-z0-9_-]{1,60})*\.(?:jpg|jpeg|png|webp)$/.test(s) ? s : "";
 };
 const setText = (sel, text) => { const el = $(sel); if (el) el.textContent = String(text); };
 const CONF = { high: "эътимод: баланд", medium: "эътимод: миёна", low: "эътимод: паст (тахминӣ)" };
@@ -112,6 +112,8 @@ async function loadConfig() {
 }
 
 async function loadMenu() {
+  // Phase B: ҳолати loading — скелетонҳо то боргирии меню (бе layout shift)
+  if (!state.menuLoaded && !state.menuError) renderSkeletons();
   try {
     const list = await api("/foods");
     state.foods = Array.isArray(list) ? list : [];
@@ -168,6 +170,17 @@ function nutritionLine(n) {
     ` <span class="conf conf-${esc(n.confidence)}">${esc(CONF[n.confidence] || "")}</span>`;
 }
 
+/** Phase B (B3): скелетонҳои боргирӣ — танҳо CSS animation (transform/opacity), бе layout shift */
+function renderSkeletons() {
+  const grid = $("#foodGrid");
+  if (!grid) return;
+  grid.innerHTML = Array.from({ length: 6 }, () => `
+    <article class="skeleton-card" aria-hidden="true">
+      <div class="food-image sk"></div>
+      <div class="food-info"><div class="sk sk-line w60"></div><div class="sk sk-line w40"></div><div class="sk sk-btn"></div></div>
+    </article>`).join("");
+}
+
 function renderFoods(cat = "Ҳама") {
   currentCategory = cat;
   const list = state.foods.filter((f) => f.available !== false && (cat === "Ҳама" || f.category === cat));
@@ -175,7 +188,7 @@ function renderFoods(cat = "Ҳама") {
     .map((f) => {
       const img = safeImageUrl(f.image);
       return `
-    <article class="food-card reveal visible" data-open="${esc(f.id)}">
+    <article class="food-card reveal visible" data-open="${esc(f.id)}" tabindex="0" aria-haspopup="dialog" aria-label="${esc(f.name)} — ${esc(f.price)} с.">
       ${img ? `<div class="food-image" style="background-image:url('${esc(img)}')"></div>` : '<div class="food-image food-image-empty">🍽</div>'}
       <div class="food-info">
         <div class="food-top"><h3>${esc(f.name)}</h3><span class="price">${esc(f.price)} с.</span></div>
@@ -250,7 +263,7 @@ function renderCart() {
       return `<div class="cart-row">
         ${img ? `<img src="${esc(img)}" alt="">` : '<div class="cart-noimg">🍽</div>'}
         <div><h4>${esc(x.food.name)}</h4><small>${esc(x.food.price)} с.</small>
-          <div class="qty"><button type="button" data-minus="${esc(x.id)}">−</button><span>${esc(x.qty)}</span><button type="button" data-plus="${esc(x.id)}">+</button></div>
+          <div class="qty"><button type="button" data-minus="${esc(x.id)}" aria-label="Як адад кам">−</button><span>${esc(x.qty)}</span><button type="button" data-plus="${esc(x.id)}" aria-label="Як адад зиёд">+</button><button type="button" class="row-del" data-del="${esc(x.id)}" aria-label="Нест кардани ${esc(x.food.name)} аз сабад" title="Нест кардан">×</button></div>
         </div>
         <strong>${esc(x.food.price * x.qty)} с.</strong></div>`;
     })
@@ -267,6 +280,13 @@ function changeQty(id, delta) {
   saveCart();
 }
 
+/** Phase B (B4): нест кардани мустақими маҳсулот бо feedback */
+function removeItem(id) {
+  const before = state.cart.length;
+  state.cart = state.cart.filter((x) => x.id !== id);
+  if (state.cart.length !== before) { saveCart(); toast("Аз сабад нест карда шуд ✕"); }
+}
+
 function openCart() {
   closeModals();
   $("#overlay").classList.add("show");
@@ -280,10 +300,24 @@ function openCheckout() {
   $("#promoInput").value = "";
   $("#promoInfo").hidden = true;
   setErr($("#checkoutError"), "");
+  syncFulfilment();
   updateCheckoutTotal();
   $("#cartDrawer").classList.remove("open");
   $("#checkoutModal").classList.add("show");
   showOverlay();
+  setTimeout(() => { const n = $("#checkoutModal input[name=name]"); if (n) n.focus(); }, 120);
+}
+
+/** Phase A (B2): pickup суроғаро ихтиёрӣ мекунад; delivery — ҳатмӣ (қоидаи backend бе тағйир) */
+function syncFulfilment() {
+  const sel = $("#fulfilmentSelect");
+  const field = $("#addressField");
+  const input = $("#addressInput");
+  if (!sel || !field || !input) return;
+  const pickup = sel.value === "pickup";
+  field.hidden = pickup;
+  input.required = !pickup;
+  if (pickup) input.value = "";
 }
 
 function updateCheckoutTotal() {
@@ -323,8 +357,12 @@ async function submitCheckout(e) {
   const btn = $("#checkoutSubmit");
   const f = new FormData(form);
   const method = f.get("method") === "cash" ? "cash" : "online";
+  // Phase A (B2): усули гирифтан — расонидан ё pickup (backend аллакай дастгирӣ мекунад)
+  const fulfilment = f.get("fulfilment") === "pickup" ? "pickup" : "delivery";
   setErr($("#checkoutError"), "");
   btn.disabled = true;
+  const btnLabel = btn.textContent; // Phase B (B4): ҳолати loading
+  btn.textContent = "⏳ Фармоиш фиристода мешавад…";
   try {
     const order = await api("/orders", {
       method: "POST",
@@ -332,7 +370,7 @@ async function submitCheckout(e) {
         customerName: String(f.get("name") || ""),
         phone: String(f.get("phone") || ""),
         address: String(f.get("address") || ""),
-        method: "delivery",
+        method: fulfilment,
         paymentMethod: method,
         paymentProvider: method === "online" ? "manual" : null,
         items: cartLines().map((x) => ({ foodId: x.id, quantity: x.qty })),
@@ -356,6 +394,7 @@ async function submitCheckout(e) {
     setErr($("#checkoutError"), err.message);
   } finally {
     btn.disabled = false;
+    btn.textContent = btnLabel;
   }
 }
 
@@ -493,8 +532,8 @@ async function renderMyOrders() {
     .map(({ rec, order, error }) => {
       if (error) return `<div class="mo-card"><div class="mo-head"><b>#${esc(rec.id)}</b></div><small>${esc(error.message)}</small></div>`;
       const items = (order.items || []).map((i) => `${esc(i.name)} × ${esc(i.quantity)}`).join(", ");
-      const pay = order.status === "AWAITING_PAYMENT" && order.paymentMethod === "online"
-        ? `<button type="button" data-order-pay="${esc(order.id)}">Пардохт кардан</button>` : "";
+      const pay = order.paymentMethod === "online" && ["AWAITING_PAYMENT", "PAYMENT_REJECTED"].includes(order.status)
+        ? `<button type="button" data-order-pay="${esc(order.id)}">${order.status === "PAYMENT_REJECTED" ? "Аз нав пардохт кардан" : "Пардохт кардан"}</button>` : "";
       const reject = order.status === "PAYMENT_REJECTED" && order.rejectReason
         ? `<small class="mo-reject">Сабаб: ${esc(order.rejectReason)}</small>` : "";
       return `<div class="mo-card">
@@ -583,19 +622,19 @@ function loadPrefsForm() {
   $("#prefMinor").checked = Boolean(p.minor);
 }
 
+function aiGreeting() {
+  return state.aiEnabled
+    ? "Салом! Ман OSHONA AI ҳастам. Мегӯед, чӣ мехоҳед: буҷет, таъм ё истисноҳо. Тавсияҳо аз меню ва таркиби ҳақиқии ошхона аст."
+    : "Салом! Ман тавсияи меню медиҳам. AI ҳозир фаъол нест, аммо тавсияҳо аз рӯи буҷет ва таъми шумо тартиб дода мешаванд.";
+}
+
 function openAi() {
   closeAll();
   $("#aiScreen").classList.add("show");
   document.body.classList.add("lock");
   loadPrefsForm();
   if (!state.chat.length) {
-    appendBot({
-      reply: state.aiEnabled
-        ? "Салом! Ман OSHONA AI ҳастам. Мегӯед, чӣ мехоҳед: буҷет, таъм ё истисноҳо. Тавсияҳо аз меню ва таркиби ҳақиқии ошхона аст."
-        : "Салом! Ман тавсияи меню медиҳам. AI ҳозир фаъол нест, аммо тавсияҳо аз рӯи буҷет ва таъми шумо тартиб дода мешаванд.",
-      recommendations: [],
-      notes: [],
-    });
+    appendBot({ reply: aiGreeting(), recommendations: [], notes: [] });
   }
   setTimeout(() => $("#aiInput").focus(), 150);
 }
@@ -697,6 +736,13 @@ async function sendAi(text) {
   } catch (err) {
     pending.textContent = `Хатогӣ: ${err.message}`;
     pending.classList.add("ai-error");
+    // Phase B (B6): амали такрорӣ (retry) пас аз хатогӣ
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "btn btn-ghost ai-retry";
+    retry.textContent = "↻ Аз нав кӯшиш кардан";
+    retry.addEventListener("click", () => { pending.remove(); sendAi(message); });
+    pending.append(retry);
   } finally {
     $("#aiSend").disabled = false;
   }
@@ -728,7 +774,11 @@ function observeReveals() {
 }
 
 function switchMainTab(name) {
-  $$("#tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  $$("#tabbar button").forEach((b) => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle("active", on);
+    if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
   closeAll();
   if (name === "home") window.scrollTo({ top: 0, behavior: "smooth" });
   if (name === "menu") $("#menu").scrollIntoView({ behavior: "smooth" });
@@ -741,7 +791,15 @@ function switchMainTab(name) {
 document.addEventListener("click", (e) => {
   const t = e.target;
   const addBtn = t.closest("[data-add]");
-  if (addBtn) { e.stopPropagation(); addToCart(Number(addBtn.dataset.add)); return; }
+  if (addBtn) {
+    e.stopPropagation();
+    addBtn.classList.add("pulse"); // Phase B (B5): feedback-и кӯтоҳ
+    setTimeout(() => addBtn.classList.remove("pulse"), 480);
+    addToCart(Number(addBtn.dataset.add));
+    return;
+  }
+  const del = t.closest("[data-del]");
+  if (del) { removeItem(Number(del.dataset.del)); return; }
   const plus = t.closest("[data-plus]");
   if (plus) { changeQty(Number(plus.dataset.plus), 1); return; }
   const minus = t.closest("[data-minus]");
@@ -770,6 +828,19 @@ document.addEventListener("click", (e) => {
   if (t.id === "aiBtn" || t.id === "aiEntryBtn") { openAi(); return; }
 });
 
+/* Клавиатура (дастрасӣ, Phase A): ESC пӯшидани қабатҳо; Enter/Space кушодани корти таом */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if ($("#searchScreen").classList.contains("show")) { closeSearch(); return; }
+    if ($("#aiScreen").classList.contains("show")) { closeAi(); return; }
+    if ($(".modal.show") || $("#cartDrawer").classList.contains("open")) closeAll();
+    return;
+  }
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target && e.target.closest ? e.target.closest(".food-card[data-open]") : null;
+  if (card && e.target === card) { e.preventDefault(); openFood(Number(card.dataset.open)); }
+});
+
 document.addEventListener("error", (e) => {
   if (e.target && e.target.matches && e.target.matches("img[data-hide-on-error]")) e.target.style.display = "none";
 }, true);
@@ -781,7 +852,15 @@ $("#reservationForm").addEventListener("submit", submitReservation);
 $("#searchBtn").addEventListener("click", openSearch);
 $("#searchClose").addEventListener("click", closeSearch);
 $("#searchInput").addEventListener("input", renderSearch);
+$("#fulfilmentSelect").addEventListener("change", syncFulfilment);
 $("#aiClose").addEventListener("click", closeAi);
+$("#aiClear").addEventListener("click", () => {
+  // Phase B (B6): тоза кардани сӯҳбат — танҳо хотираи локалии чат
+  state.chat = [];
+  $("#aiLog").textContent = "";
+  appendBot({ reply: aiGreeting(), recommendations: [], notes: [] });
+  toast("Сӯҳбат тоза шуд ♻");
+});
 $("#menuToggle").addEventListener("click", () => $("#nav").classList.toggle("open"));
 $("#allMenuBtn").addEventListener("click", () => { renderFoods("Ҳама"); renderFilters(); $("#menu").scrollIntoView({ behavior: "smooth" }); });
 $("#payDoneBtn").addEventListener("click", confirmPaymentSubmitted);
