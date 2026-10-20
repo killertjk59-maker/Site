@@ -1,0 +1,50 @@
+# OSHONA CI — Phase A (audit docs/AUDIT-PHASE1-2026-10-20.md, P0-1)
+# Ҳар push/PR: синтаксис, тестҳо (236+), аудити вобастагиҳо.
+# Характеризатсияи ҷараёни пардохт (characterization.test.js) дар ин ҷо муҳофизат мешавад:
+# ҳар тағйироти рафтори пардохт CI-ро сурх мекунад.
+name: CI
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Check + tests (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20.x", "22.x"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies (locked)
+        run: npm ci
+
+      - name: Syntax check (node --check, all JS files)
+        run: npm run check
+
+      - name: Unit + integration tests (node:test)
+        run: npm test
+
+      - name: Dependency audit (blocks on high/critical)
+        run: npm audit --audit-level=high
