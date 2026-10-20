@@ -39,7 +39,7 @@ const CONF_TEXT = { high: "баланд", medium: "миёна", low: "паст" 
 const WEEKDAYS = ["Якшанбе", "Душанбе", "Сешанбе", "Чоршанбе", "Панҷшанбе", "Ҷумъа", "Шанбе"];
 const ALLERGENS = [
   ["gluten", "Глютен"], ["crustaceans", "Харчанг/майгу"], ["eggs", "Тухм"], ["fish", "Моҳӣ"],
-  ["peanuts", "Зардчӯба"], ["soy", "Соя"], ["milk", "Шир"], ["nuts", "Меваҳои пӯстдор"],
+  ["peanuts", "Зилзаминӣ (арахис)"], ["soy", "Соя"], ["milk", "Шир"], ["nuts", "Меваҳои пӯстдор"],
   ["celery", "Карафс"], ["mustard", "Хардал"], ["sesame", "Кунҷид"], ["sulphites", "Сулфитҳо"],
   ["lupin", "Лупин"], ["molluscs", "Моллюскҳо"],
 ];
@@ -115,8 +115,18 @@ function showApp() {
   $("#loginCard").hidden = true;
   $("#app").hidden = false;
   $("#logoutBtn").hidden = false;
+  loadVersionTag();
   loadStats();
   switchTab(currentTab);
+}
+
+/** Phase A (B10): версияи backend дар панел — унсури #verTag дигар холӣ нест */
+async function loadVersionTag() {
+  try {
+    const cfg = await api("/config");
+    const el = $("#verTag");
+    if (el && cfg && cfg.version) el.textContent = "v" + cfg.version;
+  } catch { /* ихтиёрӣ аст */ }
 }
 
 /* ---------- Оморҳо ---------- */

@@ -57,7 +57,7 @@ function sanitizeNutritionClaims(text, allowedNumbers) {
   };
   let out = String(text || "");
   out = out.replace(/(\d{1,4}(?:[.,]\d)?)\s*(?:ккал|kcal|калор\p{L}*)/giu, (m, n) => replaceIfUnverified(m, n));
-  out = out.replace(/(\d{1,3}(?:[.,]\d)?)\s*г\s*(?:белк\p{L}*|протеин\p{L}*|жир\p{L}*|углевод\p{L}*|карбогидрат\p{L}*|равған\p{L}*|сафед\p{L}*)/giu, (m, n) =>
+  out = out.replace(/(\d{1,3}(?:[.,]\d)?)\s*г\s*(?:бел[ок]\p{L}*|протеин\p{L}*|жир\p{L}*|углевод\p{L}*|карбогидрат\p{L}*|равған\p{L}*|сафед\p{L}*)/giu, (m, n) =>
     replaceIfUnverified(m, n)
   );
   return out;

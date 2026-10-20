@@ -13,13 +13,15 @@ const { normalizeKey, round0, round1 } = require("./util");
 
 const CONFIDENCE_RANK = { low: 1, medium: 2, high: 3 };
 const CONFIDENCE_LEVELS = Object.keys(CONFIDENCE_RANK);
+/** Phase C (C4): ҳадди оқилонаи вазни як ингредиент (грамм) — ҳамон ҳадде, ки admin API маҷбур мекунад */
+const MAX_INGREDIENT_GRAMS = 5000;
 
 const ALLERGEN_LABELS = {
   gluten: "Глютен (ғалладонагиҳо)",
   crustaceans: "Харчанг ва майгу",
   eggs: "Тухм",
   fish: "Моҳӣ",
-  peanuts: "Зардчӯба",
+  peanuts: "Зилзаминӣ (арахис)",
   soy: "Соя",
   milk: "Шир ва маҳсулоти ширӣ",
   nuts: "Меваҳои пӯстдор",
@@ -38,7 +40,8 @@ const AVOID_SYNONYMS = {
   crustaceans: ["харчанг", "майгу", "креветка", "shrimp", "crustacean", "lobster", "краб"],
   eggs: ["тухм", "яйцо", "егг", "egg", "eggs", "тухмҳо"],
   fish: ["моҳӣ", "рыба", "fish", "лосось", "salmon"],
-  peanuts: ["зардчӯба", "арахис", "peanut", "peanuts"],
+  // Phase C: «зардчӯба» = turmeric (зиравор), ба арахис иштибоҳан пайваст буд — ислоҳ шуд
+  peanuts: ["зилзаминӣ", "бодомизаминӣ", "арахис", "peanut", "peanuts"],
   soy: ["соя", "soy", "соевый"],
   milk: ["шир", "молоко", "milk", "лактоза", "lactose", "панир", "сыр", "cheese", "қаймоқ", "сливки"],
   nuts: ["мағз", "орех", "nuts", "nut", "гӯзи", "бодом", "миндаль"],
@@ -128,7 +131,10 @@ function computeFoodNutrition(food, catalog) {
       base.missingIngredients.push(ing.name);
       continue;
     }
-    if (!(grams > 0)) {
+    // Phase C (C4): ҳимояи амиқ — NaN/Infinity/манфӣ/аз ҳадди оқилона (5 кг) зиёд
+    // қабул намешавад, ҳатто агар аз хранилищаи дастӣ-таҳриршуда омада бошад
+    // (admin API аллакай 0.1–5000 г-ро маҷбур мекунад; v.num → finite).
+    if (!Number.isFinite(grams) || grams <= 0 || grams > MAX_INGREDIENT_GRAMS) {
       base.missingIngredients.push(ing.name);
       continue;
     }
